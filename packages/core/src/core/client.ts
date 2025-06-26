@@ -39,6 +39,8 @@ import {
 import { ProxyAgent, setGlobalDispatcher } from 'undici';
 import { DEFAULT_GEMINI_FLASH_MODEL } from '../config/models.js';
 import { AuthType } from './contentGenerator.js';
+import OpenAI from 'openai';
+import type { ChatCompletionMessageParam } from 'openai/resources/chat';
 
 function isThinkingSupported(model: string) {
   if (model.startsWith('gemini-2.5')) return true;
@@ -50,6 +52,7 @@ export class GeminiClient {
   private contentGenerator?: ContentGenerator;
   private model: string;
   private embeddingModel: string;
+  private openai: OpenAI | undefined;
   private generateContentConfig: GenerateContentConfig = {
     temperature: 0,
     topP: 1,
@@ -70,6 +73,10 @@ export class GeminiClient {
       contentGeneratorConfig,
     );
     this.chat = await this.startChat();
+    this.openai = new OpenAI({
+      apiKey: process.env.SILICONFLOW_API_KEY,
+      baseURL: 'https://api.siliconflow.cn',
+    });
   }
   private getContentGenerator(): ContentGenerator {
     if (!this.contentGenerator) {
@@ -219,7 +226,7 @@ export class GeminiClient {
     signal: AbortSignal,
     turns: number = this.MAX_TURNS,
   ): AsyncGenerator<ServerGeminiStreamEvent, Turn> {
-    if (!turns) {
+    if (!turns || !this.openai) {
       return new Turn(this.getChat());
     }
 
@@ -227,25 +234,91 @@ export class GeminiClient {
     if (compressed) {
       yield { type: GeminiEventType.ChatCompressed, value: compressed };
     }
+
     const turn = new Turn(this.getChat());
-    const resultStream = turn.run(request, signal);
-    for await (const event of resultStream) {
-      yield event;
-    }
-    if (!turn.pendingToolCalls.length && signal && !signal.aborted) {
-      const nextSpeakerCheck = await checkNextSpeaker(
-        this.getChat(),
-        this,
-        signal,
-      );
-      if (nextSpeakerCheck?.next_speaker === 'model') {
-        const nextRequest = [{ text: 'Please continue.' }];
-        // This recursive call's events will be yielded out, but the final
-        // turn object will be from the top-level call.
-        yield* this.sendMessageStream(nextRequest, signal, turns - 1);
+    const geminiHistory = this.getChat().getHistory();
+
+    // Convert Gemini messages to OpenAI format with proper typing
+    const openaiMessages: ChatCompletionMessageParam[] = geminiHistory.map(
+      (msg) => {
+        const parts = msg.parts || [];
+        const content = parts
+          .map((part) => (typeof part === 'string' ? part : part.text || ''))
+          .join('\n');
+
+        if (msg.role === 'model') {
+          return {
+            role: 'assistant',
+            content,
+          } as const;
+        } else if (msg.role === 'user') {
+          return {
+            role: 'user',
+            content,
+          } as const;
+        }
+        throw new Error(`Unsupported message role: ${msg.role}`);
+      },
+    );
+
+    // Convert current request to OpenAI format
+    const requestParts = Array.isArray(request) ? request : [request];
+    const requestContent = requestParts
+      .map((part) => (typeof part === 'string' ? part : part.text || ''))
+      .join('\n');
+
+    openaiMessages.push({
+      role: 'user',
+      content: requestContent,
+    });
+
+    try {
+      const stream = await this.openai.chat.completions.create({
+        model: 'Pro/deepseek-ai/DeepSeek-V3',
+        messages: openaiMessages,
+        stream: true,
+      });
+
+      let fullResponse = '';
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || '';
+        if (content) {
+          fullResponse += content;
+          yield {
+            type: GeminiEventType.Content,
+            value: content,
+          };
+        }
       }
+
+      // Add response to chat history in Gemini format
+      this.getChat().addHistory({
+        role: 'model',
+        parts: [{ text: fullResponse }],
+      });
+
+      if (signal && !signal.aborted) {
+        const nextSpeakerCheck = await checkNextSpeaker(
+          this.getChat(),
+          this,
+          signal,
+        );
+        if (nextSpeakerCheck?.next_speaker === 'model') {
+          const nextRequest = [{ text: 'Please continue.' }];
+          yield* this.sendMessageStream(nextRequest, signal, turns - 1);
+        }
+      }
+
+      return turn;
+    } catch (error) {
+      await reportError(
+        error,
+        'Error in OpenAI streaming completion',
+        openaiMessages,
+        'openai-stream-error',
+      );
+      throw error;
     }
-    return turn;
   }
 
   async generateJson(
