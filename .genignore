@@ -1,0 +1,47 @@
+# 排除不需要扫描的目录和文件
+node_modules/
+.git/
+dist/
+build/
+bundle/
+.next/
+.nuxt/
+coverage/
+.nyc_output/
+*.log
+*.tmp
+.DS_Store
+.env
+.env.*
+*.min.js
+*.min.css
+
+# 排除大型数据文件
+*.zip
+*.tar.gz
+*.rar
+*.7z
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+
+# 排除媒体文件
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.svg
+*.mp4
+*.mp3
+*.avi
+*.mov
+
+# 排除临时文件
+tmp/
+temp/
+.tmp/
+.cache/

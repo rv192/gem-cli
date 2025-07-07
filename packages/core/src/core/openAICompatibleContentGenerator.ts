@@ -13,7 +13,8 @@ import {
 import OpenAI from 'openai';
 import { ContentGenerator } from './contentGenerator.js';
 import { jsonrepair } from 'jsonrepair';
-const OPENAI_BASE_URL = 'https://api.siliconflow.cn';
+// Support environment variable override for base URL
+const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || process.env.SILICONFLOW_BASE_URL || 'https://api.openai.com';
 import { reportError } from '../utils/errorReporting.js';
 
 /**
@@ -53,12 +54,64 @@ function toContent(content: Content | PartUnion): Content {
 
 export class OpenAICompatibleContentGenerator implements ContentGenerator {
   private openai: OpenAI;
+  private fallbackModels: string[];
 
   constructor(apiKey: string, baseUrl: string = OPENAI_BASE_URL) {
+    // Ensure baseURL ends with /v1 for OpenAI client compatibility
+    const normalizedBaseUrl = baseUrl.endsWith('/v1') ? baseUrl : `${baseUrl}/v1`;
     this.openai = new OpenAI({
       apiKey,
-      baseURL: baseUrl,
+      baseURL: normalizedBaseUrl,
     });
+
+    // Load fallback models from environment variable
+    const fallbackModelsEnv = process.env.FALLBACK_MODELS;
+    this.fallbackModels = fallbackModelsEnv ? fallbackModelsEnv.split(',').map(m => m.trim()) : [
+      'gemini-1.5-pro',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash'
+    ];
+  }
+
+  private async tryWithFallbackModels<T>(
+    originalModel: string,
+    operation: (model: string) => Promise<T>
+  ): Promise<T> {
+    const modelsToTry = [originalModel, ...this.fallbackModels];
+    let lastError: Error | null = null;
+
+    for (const model of modelsToTry) {
+      try {
+        console.log(`Trying model: ${model}`);
+        return await operation(model);
+      } catch (error) {
+        lastError = error as Error;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorString = JSON.stringify(error);
+
+        console.log(`Model ${model} error: ${errorMessage}`);
+        console.log(`Error details: ${errorString}`);
+
+        // Check if it's a model exhaustion or streaming error
+        if (errorMessage.includes('Streaming failed') ||
+            errorMessage.includes('rate limit') ||
+            errorMessage.includes('quota') ||
+            errorMessage.includes('exhausted') ||
+            errorMessage.includes('Internal server error') ||
+            errorMessage.includes('API Error') ||
+            errorString.includes('Streaming failed')) {
+          console.log(`Model ${model} failed: ${errorMessage}, trying next model...`);
+          continue;
+        }
+
+        // For other errors, don't try fallback models
+        console.log(`Model ${model} failed with non-retryable error: ${errorMessage}`);
+        throw error;
+      }
+    }
+
+    // If all models failed, throw the last error
+    throw lastError || new Error('All models failed');
   }
 
   private convertToOpenAIMessages(
@@ -242,23 +295,22 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
         return [];
       });
 
-    let params = {
-      model: request.model,
-      messages,
-      stream: true,
-      temperature: request.config?.temperature,
-      max_tokens: request.config?.maxOutputTokens,
-      top_p: request.config?.topP,
-      tools,
-    };
-    params = {
-      ...params,
-      top_p: 0.95,
-      temperature: 0.6,
-    };
-    const stream = await this.openai.chat.completions.create({
-      ...params,
-      stream: true,
+    // Use fallback mechanism for streaming
+    const stream = await this.tryWithFallbackModels(request.model, async (model) => {
+      const params = {
+        model,
+        messages,
+        stream: true,
+        temperature: request.config?.temperature,
+        max_tokens: request.config?.maxOutputTokens,
+        top_p: request.config?.topP,
+        tools,
+      };
+
+      return await this.openai.chat.completions.create({
+        ...params,
+        stream: true,
+      });
     });
 
     const toolCallMap = new Map<
@@ -316,7 +368,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
               reportError(
                 error,
                 'Error when talking to OpenAI-compatible API',
-                { params, str },
+                { str },
                 'OpenAICompatible.parseToolCallArguments',
               );
               throw error;
@@ -377,14 +429,17 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
 
     const tools = undefined;
 
-    const completion = await this.openai.chat.completions.create({
-      model: request.model,
-      messages,
-      stream: false,
-      temperature: request.config?.temperature,
-      max_tokens: request.config?.maxOutputTokens,
-      top_p: request.config?.topP,
-      tools,
+    // Use fallback mechanism for non-streaming requests
+    const completion = await this.tryWithFallbackModels(request.model, async (model) => {
+      return await this.openai.chat.completions.create({
+        model,
+        messages,
+        stream: false,
+        temperature: request.config?.temperature,
+        max_tokens: request.config?.maxOutputTokens,
+        top_p: request.config?.topP,
+        tools,
+      });
     });
 
     return this.convertToGeminiResponse(completion);

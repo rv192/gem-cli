@@ -56,7 +56,7 @@ async function parseArguments(): Promise<CliArgs> {
       alias: 'm',
       type: 'string',
       description: `Model`,
-      default: process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL,
+      default: process.env.DEFAULT_MODEL || process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL,
     })
     .option('prompt', {
       alias: 'p',
@@ -193,6 +193,7 @@ export async function loadCliConfig(
 
   return new Config({
     sessionId,
+    model: argv.model || DEFAULT_GEMINI_MODEL,
     embeddingModel: DEFAULT_GEMINI_EMBEDDING_MODEL,
     sandbox: sandboxConfig,
     targetDir: process.cwd(),
@@ -237,7 +238,6 @@ export async function loadCliConfig(
     cwd: process.cwd(),
     fileDiscoveryService: fileService,
     bugCommand: settings.bugCommand,
-    model: argv.model!,
     extensionContextFilePaths,
   });
 }

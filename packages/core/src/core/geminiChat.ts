@@ -130,6 +130,7 @@ export class GeminiChat {
   // A promise to represent the current state of the message being sent to the
   // model.
   private sendPromise: Promise<void> = Promise.resolve();
+  private fallbackModels: string[];
 
   constructor(
     private readonly config: Config,
@@ -138,6 +139,93 @@ export class GeminiChat {
     private history: Content[] = [],
   ) {
     validateHistory(history);
+
+    // Load fallback models from environment variable
+    const fallbackModelsEnv = process.env.FALLBACK_MODELS;
+    this.fallbackModels = fallbackModelsEnv ? fallbackModelsEnv.split(',').map(m => m.trim()) : [
+      'gemini-2.5-flash',
+      'gemini-2.5-lite',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash'
+    ];
+  }
+
+  private async tryWithFallbackModelsForStream(
+    contents: Content[],
+    config: GenerateContentConfig
+  ): Promise<AsyncGenerator<GenerateContentResponse>> {
+    const modelsToTry = [this.config.getModel(), ...this.fallbackModels];
+    let lastError: Error | null = null;
+
+    for (const model of modelsToTry) {
+      try {
+        console.log(`Trying model: ${model}`);
+
+        // Try the model directly without retryWithBackoff first
+        try {
+          return await this.contentGenerator.generateContentStream({
+            model,
+            contents,
+            config,
+          });
+        } catch (directError) {
+          // If direct call fails, check if we should try fallback
+          const errorMessage = directError instanceof Error ? directError.message : String(directError);
+          const errorString = JSON.stringify(directError);
+
+          console.log(`Model ${model} direct error: ${errorMessage}`);
+
+          // Check if it's a model exhaustion or streaming error
+          const shouldTryFallback =
+            errorMessage.includes('Streaming failed') ||
+            errorMessage.includes('rate limit') ||
+            errorMessage.includes('quota') ||
+            errorMessage.includes('exhausted') ||
+            errorMessage.includes('Internal server error') ||
+            errorMessage.includes('API Error') ||
+            errorString.includes('Streaming failed') ||
+            errorString.includes('rate limit') ||
+            errorString.includes('quota') ||
+            errorString.includes('exhausted') ||
+            errorString.includes('Internal server error');
+
+          if (shouldTryFallback) {
+            console.log(`Model ${model} failed: ${errorMessage}, trying next model...`);
+            lastError = directError as Error;
+            continue; // Try next model
+          }
+
+          // For non-retryable errors, try with retryWithBackoff for 429/5xx errors
+          const apiCall = () =>
+            this.contentGenerator.generateContentStream({
+              model,
+              contents,
+              config,
+            });
+
+          return await retryWithBackoff(apiCall, {
+            shouldRetry: (error: Error) => {
+              if (error && error.message) {
+                if (error.message.includes('429')) return true;
+                if (error.message.match(/5\d{2}/)) return true;
+              }
+              return false;
+            },
+            onPersistent429: async (authType?: string) =>
+              await this.handleFlashFallback(authType),
+            authType: this.config.getContentGeneratorConfig()?.authType,
+          });
+        }
+      } catch (error) {
+        lastError = error as Error;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.log(`Model ${model} final error: ${errorMessage}`);
+        // Continue to next model
+      }
+    }
+
+    // If all models failed, throw the last error
+    throw lastError || new Error('All models failed');
   }
 
   private _getRequestTextFromContents(contents: Content[]): string {
@@ -267,6 +355,12 @@ export class GeminiChat {
           if (error && error.message) {
             if (error.message.includes('429')) return true;
             if (error.message.match(/5\d{2}/)) return true;
+            // Add support for streaming failures and model exhaustion
+            if (error.message.includes('Streaming failed')) return true;
+            if (error.message.includes('rate limit')) return true;
+            if (error.message.includes('quota')) return true;
+            if (error.message.includes('exhausted')) return true;
+            if (error.message.includes('Internal server error')) return true;
           }
           return false;
         },
@@ -347,30 +441,11 @@ export class GeminiChat {
     const startTime = Date.now();
 
     try {
-      const apiCall = () =>
-        this.contentGenerator.generateContentStream({
-          model: this.config.getModel(),
-          contents: requestContents,
-          config: { ...this.generationConfig, ...params.config },
-        });
-
-      // Note: Retrying streams can be complex. If generateContentStream itself doesn't handle retries
-      // for transient issues internally before yielding the async generator, this retry will re-initiate
-      // the stream. For simple 429/500 errors on initial call, this is fine.
-      // If errors occur mid-stream, this setup won't resume the stream; it will restart it.
-      const streamResponse = await retryWithBackoff(apiCall, {
-        shouldRetry: (error: Error) => {
-          // Check error messages for status codes, or specific error names if known
-          if (error && error.message) {
-            if (error.message.includes('429')) return true;
-            if (error.message.match(/5\d{2}/)) return true;
-          }
-          return false; // Don't retry other errors by default
-        },
-        onPersistent429: async (authType?: string) =>
-          await this.handleFlashFallback(authType),
-        authType: this.config.getContentGeneratorConfig()?.authType,
-      });
+      // Try with fallback models for streaming
+      const streamResponse = await this.tryWithFallbackModelsForStream(
+        requestContents,
+        { ...this.generationConfig, ...params.config }
+      );
 
       // Resolve the internal tracking of send completion promise - `sendPromise`
       // for both success and failure response. The actual failure is still

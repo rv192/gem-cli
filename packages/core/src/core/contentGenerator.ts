@@ -112,13 +112,15 @@ export async function createContentGenerator(
     },
   };
   if (config.authType === AuthType.USE_SILICONFLOW) {
-    const apiKey = process.env.SILICONFLOW_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY || process.env.SILICONFLOW_API_KEY;
     if (!apiKey) {
       throw new Error(
-        'SILICONFLOW_API_KEY environment variable is not set. Please set it to use SiliconFlow.',
+        'OPENAI_API_KEY environment variable is not set. Please set it to use OpenAI-compatible API.',
       );
     }
-    return new OpenAICompatibleContentGenerator(apiKey);
+    // Support custom base URL via environment variables
+    const baseUrl = process.env.OPENAI_BASE_URL || process.env.SILICONFLOW_BASE_URL;
+    return new OpenAICompatibleContentGenerator(apiKey, baseUrl);
   }
   if (config.authType === AuthType.LOGIN_WITH_GOOGLE) {
     return createCodeAssistContentGenerator(
