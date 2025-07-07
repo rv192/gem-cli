@@ -77,9 +77,51 @@ For direct Google Gemini API access:
 
 Once configured, start the CLI and begin interacting:
 
+<<<<<<< HEAD
 ```bash
 gen
 ```
+=======
+3. **Pick a color theme**
+4. **Authenticate:** When prompted, sign in with your personal Google account. This will grant you up to 60 model requests per minute and 1,000 model requests per day using Gemini.
+
+You are now ready to use the Gemini CLI!
+
+### Use a Gemini API key:
+
+The Gemini API provides a free tier with [100 requests per day](https://ai.google.dev/gemini-api/docs/rate-limits#free-tier) using Gemini 2.5 Pro, control over which model you use, and access to higher rate limits (with a paid plan):
+
+1. Generate a key from [Google AI Studio](https://aistudio.google.com/apikey).
+2. Set it as an environment variable in your terminal. Replace `YOUR_API_KEY` with your generated key.
+
+   ```bash
+   export GEMINI_API_KEY="YOUR_API_KEY"
+   ```
+
+3. (Optionally) Upgrade your Gemini API project to a paid plan on the API key page (will automatically unlock [Tier 1 rate limits](https://ai.google.dev/gemini-api/docs/rate-limits#tier-1))
+
+### Use a Vertex AI API key:
+
+The Vertex AI provides [free tier](https://cloud.google.com/vertex-ai/generative-ai/docs/start/express-mode/overview) using express mode for Gemini 2.5 Pro, control over which model you use, and access to higher rate limits with a billing account:
+
+1. Generate a key from [Google Cloud](https://cloud.google.com/vertex-ai/generative-ai/docs/start/api-keys).
+2. Set it as an environment variable in your terminal. Replace `YOUR_API_KEY` with your generated key and set GOOGLE_GENAI_USE_VERTEXAI to true
+
+   ```bash
+   export GOOGLE_API_KEY="YOUR_API_KEY"
+   export GOOGLE_GENAI_USE_VERTEXAI=true
+   ```
+
+3. (Optionally) Add a billing account on your project to get access to [higher usage limits](https://cloud.google.com/vertex-ai/generative-ai/docs/quotas)
+
+For other authentication methods, including Google Workspace accounts, see the [authentication](./docs/cli/authentication.md) guide.
+
+## Examples
+
+Once the CLI is running, you can start interacting with Gemini from your shell.
+
+You can start a project from a new directory:
+>>>>>>> 12d231e6408f319a1b3af375b8c2eb8ab3ea5b3b
 
 ### Start a New Project
 ```sh

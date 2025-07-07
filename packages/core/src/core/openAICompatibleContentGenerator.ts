@@ -13,10 +13,14 @@ import {
 import OpenAI from 'openai';
 import { ContentGenerator } from './contentGenerator.js';
 import { jsonrepair } from 'jsonrepair';
-// Support environment variable override for base URL
-const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || process.env.SILICONFLOW_BASE_URL || 'https://api.openai.com';
 import { reportError } from '../utils/errorReporting.js';
 
+// Support environment variable override for base URL
+const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || process.env.SILICONFLOW_BASE_URL || 'https://api.openai.com';
+
+export function baseURL(): string {
+  return process.env.SILICONFLOW_BASE_URL || 'https://api.siliconflow.cn';
+}
 /**
  * Helper function to convert ContentListUnion to Content[]
  */
