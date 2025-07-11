@@ -9,7 +9,8 @@ import { render } from 'ink';
 import { AppWrapper } from './ui/App.js';
 import { loadCliConfig } from './config/config.js';
 import { readStdin } from './utils/readStdin.js';
-import { basename } from 'node:path';
+import { basename, join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import v8 from 'node:v8';
 import os from 'node:os';
 import { spawn } from 'node:child_process';
@@ -39,6 +40,41 @@ import {
 } from '@rv192/gem-cli-core';
 import { validateAuthMethod } from './config/auth.js';
 import { setMaxSizedBoxDebugging } from './ui/components/shared/MaxSizedBox.js';
+import { existsSync, mkdirSync, copyFileSync } from 'node:fs';
+
+function runFirstTimeSetup() {
+  const targetDir = join(os.homedir(), '.gem-cli');
+  // Use import.meta.url to get the path of the current module.
+  // The .env.template file is located at the root of the package.
+  const sourceTemplatePath = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '.env.template');
+  const targetTemplatePath = join(targetDir, '.env.template');
+
+  try {
+    if (!existsSync(targetDir)) {
+      mkdirSync(targetDir, { recursive: true });
+    }
+
+    if (!existsSync(targetTemplatePath)) {
+      copyFileSync(sourceTemplatePath, targetTemplatePath);
+
+      const green = '\x1b[32m';
+      const yellow = '\x1b[33m';
+      const reset = '\x1b[0m';
+      const targetDirForDisplay = '~/.gem-cli';
+
+      console.log(`\n${green}============================================================${reset}`);
+      console.log(`${green} Gemini CLI Post-Install Setup Complete! ${reset}`);
+      console.log(`${green}------------------------------------------------------------${reset}`);
+      console.log(`A configuration template has been created for you at:`);
+      console.log(`${yellow}${targetDirForDisplay}/.env.template${reset}`);
+      console.log(`\nTo get started, you can copy it to .env and add your API key:`);
+      console.log(`${yellow}cp ${targetDirForDisplay}/.env.template ${targetDirForDisplay}/.env${reset}`);
+      console.log(`${green}============================================================${reset}\n`);
+    }
+  } catch (error) {
+    console.error('Failed to copy .env.template:', error);
+  }
+}
 
 function getNodeMemoryArgs(config: Config): string[] {
   const totalMemoryMB = os.totalmem() / (1024 * 1024);
@@ -85,6 +121,7 @@ async function relaunchWithAdditionalArgs(additionalArgs: string[]) {
 }
 
 export async function main() {
+  runFirstTimeSetup();
   const workspaceRoot = process.cwd();
   const settings = loadSettings(workspaceRoot);
 

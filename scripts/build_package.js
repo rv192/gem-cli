@@ -18,7 +18,7 @@
 // limitations under the License.
 
 import { execSync } from 'child_process';
-import { writeFileSync, copyFileSync, existsSync, mkdirSync } from 'fs';
+import { writeFileSync } from 'fs';
 import { join } from 'path';
 
 if (!process.cwd().includes('packages')) {
@@ -31,29 +31,6 @@ execSync('tsc --build', { stdio: 'inherit' });
 
 // copy .{md,json} files
 execSync('node ../../scripts/copy_files.js', { stdio: 'inherit' });
-
-// Copy additional files
-const rootDir = join(process.cwd(), '..', '..');
-const targetDir = process.cwd();
-
-const filesToCopy = [
-  {
-    source: join(rootDir, '.env.template'),
-    destination: join(targetDir, '.env.template'),
-  },
-  {
-    source: join(rootDir, 'scripts', 'post-install-user.js'),
-    destination: join(targetDir, 'scripts', 'post-install-user.js'),
-  },
-];
-
-filesToCopy.forEach(({ source, destination }) => {
-  const destDir = join(destination, '..');
-  if (!existsSync(destDir)) {
-    mkdirSync(destDir, { recursive: true });
-  }
-  copyFileSync(source, destination);
-});
 
 // touch dist/.last_build
 writeFileSync(join(process.cwd(), 'dist', '.last_build'), '');

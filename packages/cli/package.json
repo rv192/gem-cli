@@ -1,6 +1,6 @@
 {
   "name": "@rv192/gem-cli",
-  "version": "0.5.5",
+  "version": "0.5.8",
   "description": "Gen CLI",
   "repository": {
     "type": "git",
@@ -19,16 +19,14 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:ci": "vitest run --coverage",
-    "typecheck": "tsc --noEmit",
-    "postinstall": "node scripts/post-install-user.js"
+    "typecheck": "tsc --noEmit"
   },
   "files": [
     "dist",
-    "scripts/post-install-user.js",
     ".env.template"
   ],
   "config": {
-    "sandboxImageUri": "us-docker.pkg.dev/gemini-code-dev/gemini-cli/sandbox:0.5.5"
+    "sandboxImageUri": "us-docker.pkg.dev/gemini-code-dev/gemini-cli/sandbox:0.5.8"
   },
   "dependencies": {
     "@rv192/gem-cli-core": "0.5.1",
