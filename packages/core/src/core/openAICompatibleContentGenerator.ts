@@ -15,11 +15,8 @@ import { ContentGenerator } from './contentGenerator.js';
 import { jsonrepair } from 'jsonrepair';
 import { reportError } from '../utils/errorReporting.js';
 
-// Support environment variable override for base URL
-const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || process.env.SILICONFLOW_BASE_URL || 'https://api.openai.com';
-
-export function baseURL(): string {
-  return process.env.SILICONFLOW_BASE_URL || 'https://api.siliconflow.cn';
+export function getOpenAICompatibleBaseURL(): string {
+  return process.env.OPENAI_BASE_URL || process.env.SILICONFLOW_BASE_URL || 'https://api.openai.com';
 }
 /**
  * Helper function to convert ContentListUnion to Content[]
@@ -60,7 +57,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
   private openai: OpenAI;
   private fallbackModels: string[];
 
-  constructor(apiKey: string, baseUrl: string = OPENAI_BASE_URL) {
+  constructor(apiKey: string, baseUrl: string = getOpenAICompatibleBaseURL()) {
     // Ensure baseURL ends with /v1 for OpenAI client compatibility
     const normalizedBaseUrl = baseUrl.endsWith('/v1') ? baseUrl : `${baseUrl}/v1`;
     this.openai = new OpenAI({

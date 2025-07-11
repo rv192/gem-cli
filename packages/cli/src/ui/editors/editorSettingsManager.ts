@@ -8,7 +8,7 @@ import {
   allowEditorTypeInSandbox,
   checkHasEditorType,
   type EditorType,
-} from '@gen-cli/gen-cli-core';
+} from '@rv192/gem-cli-core';
 
 export interface EditorDisplay {
   name: string;

@@ -14,7 +14,7 @@ import {
   ToolExecuteConfirmationDetails,
   ToolMcpConfirmationDetails,
   Config,
-} from '@gen-cli/gen-cli-core';
+} from '@rv192/gem-cli-core';
 import {
   RadioButtonSelect,
   RadioSelectItem,

@@ -12,7 +12,7 @@ import {
   getErrorMessage,
   isNodeError,
   unescapePath,
-} from '@gen-cli/gen-cli-core';
+} from '@rv192/gem-cli-core';
 import {
   HistoryItem,
   IndividualToolCallDisplay,

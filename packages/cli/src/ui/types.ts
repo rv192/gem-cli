@@ -7,7 +7,7 @@
 import {
   ToolCallConfirmationDetails,
   ToolResultDisplay,
-} from '@gen-cli/gen-cli-core';
+} from '@rv192/gem-cli-core';
 
 // Only defining the state enum needed by the UI
 export enum StreamingState {

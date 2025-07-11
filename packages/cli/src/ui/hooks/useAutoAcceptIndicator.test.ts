@@ -20,14 +20,14 @@ import {
   Config,
   Config as ActualConfigType,
   ApprovalMode,
-} from '@gen-cli/gen-cli-core';
+} from '@rv192/gem-cli-core';
 import { useInput, type Key as InkKey } from 'ink';
 
 vi.mock('ink');
 
-vi.mock('@gen-cli/gen-cli-core', async () => {
+vi.mock('@rv192/gem-cli-core', async () => {
   const actualServerModule = (await vi.importActual(
-    '@gen-cli/gen-cli-core',
+    '@rv192/gem-cli-core',
   )) as Record<string, unknown>;
   return {
     ...actualServerModule,

@@ -1,6 +1,6 @@
 {
-  "name": "@gen-cli/gen-cli",
-  "version": "0.1.9",
+  "name": "@rv192/gem-cli",
+  "version": "0.5.2",
   "description": "Gen CLI",
   "repository": {
     "type": "git",
@@ -9,7 +9,7 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "gen": "dist/index.js"
+    "gem-cli": "dist/index.js"
   },
   "scripts": {
     "build": "node ../../scripts/build_package.js",
@@ -25,10 +25,10 @@
     "dist"
   ],
   "config": {
-    "sandboxImageUri": "us-docker.pkg.dev/gemini-code-dev/gemini-cli/sandbox:0.1.9"
+    "sandboxImageUri": "us-docker.pkg.dev/gemini-code-dev/gemini-cli/sandbox:0.5.2"
   },
   "dependencies": {
-    "@gen-cli/gen-cli": "file:../core",
+    "@rv192/gem-cli-core": "0.5.1",
     "@types/update-notifier": "^6.0.8",
     "command-exists": "^1.2.9",
     "diff": "^7.0.0",

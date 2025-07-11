@@ -1,6 +1,6 @@
 {
-  "name": "@gen-cli/gen-cli",
-  "version": "0.1.9",
+  "name": "@rv192/gem-cli",
+  "version": "0.5.2",
   "engines": {
     "node": ">=20.0.0"
   },
@@ -14,7 +14,7 @@
     "url": "git+https://github.com/gen-cli/gen-cli.git"
   },
   "config": {
-    "sandboxImageUri": "us-docker.pkg.dev/gemini-code-dev/gemini-cli/sandbox:0.1.9"
+    "sandboxImageUri": "us-docker.pkg.dev/gemini-code-dev/gemini-cli/sandbox:0.5.2"
   },
   "scripts": {
     "generate": "node scripts/generate-git-commit-info.js",
@@ -48,13 +48,14 @@
     "build:sandbox:fast": "node scripts/build_sandbox.js --skip-npm-install-build",
     "prepare:package": "node scripts/prepare-package.js",
     "publish:sandbox": "node scripts/publish-sandbox.js",
-    "publish:npm": "npm publish --workspaces ${NPM_PUBLISH_TAG:+--tag=$NPM_PUBLISH_TAG} ${NPM_DRY_RUN:+--dry-run}",
+    "publish:npm": "npm publish --workspaces --access public ${NPM_PUBLISH_TAG:+--tag=$NPM_PUBLISH_TAG} ${NPM_DRY_RUN:+--dry-run}",
     "publish:release": "npm run prepare:package && npm run build:packages && npm run build:sandbox:fast && npm run publish:sandbox && npm run publish:npm",
     "prepublishOnly": "node scripts/check-versions.js && node scripts/prepublish.js",
     "release:version": "node scripts/version.js",
     "tag:release:nightly": "node scripts/tag-release.js",
     "check:versions": "node scripts/check-versions.js",
-    "publish:actions-release": "npm run prepare:package && npm run build:packages && npm run publish:npm"
+    "publish:actions-release": "npm run prepare:package && npm run build:packages && npm run publish:npm",
+    "postinstall": "node scripts/post-install.js"
   },
   "bin": {
     "gen": "bundle/gemini.js"
@@ -62,7 +63,8 @@
   "files": [
     "bundle/",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    ".env.template"
   ],
   "devDependencies": {
     "@types/micromatch": "^4.0.9",

@@ -16,7 +16,7 @@ import {
   uiTelemetryService,
   SessionMetrics,
   ModelMetrics,
-} from '@gen-cli/gen-cli-core';
+} from '@rv192/gem-cli-core';
 
 // --- Interface Definitions ---
 

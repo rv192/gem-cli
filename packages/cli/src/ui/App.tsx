@@ -54,8 +54,7 @@ import {
   ApprovalMode,
   isEditorAvailable,
   EditorType,
-  baseURL,
-} from '@gen-cli/gen-cli-core';
+} from '@rv192/gem-cli-core';
 import { validateAuthMethod } from '../config/auth.js';
 import { useLogger } from './hooks/useLogger.js';
 import { StreamingContext } from './contexts/StreamingContext.js';
@@ -81,6 +80,7 @@ interface AppProps {
   config: Config;
   settings: LoadedSettings;
   startupWarnings?: string[];
+  apiBaseURL: string;
 }
 
 export const AppWrapper = (props: AppProps) => (
@@ -89,7 +89,12 @@ export const AppWrapper = (props: AppProps) => (
   </SessionStatsProvider>
 );
 
-const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
+const App = ({
+  config,
+  settings,
+  startupWarnings = [],
+  apiBaseURL,
+}: AppProps) => {
   useBracketedPaste();
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
   const { stdout } = useStdout();
@@ -742,7 +747,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                   )}
                 </Box>
                 <Box>
-                  <EndpointDisplay baseURL={baseURL()} />
+                  <EndpointDisplay baseURL={apiBaseURL} />
                 </Box>
                 <Box>
                   {showAutoAcceptIndicator !== ApprovalMode.DEFAULT &&

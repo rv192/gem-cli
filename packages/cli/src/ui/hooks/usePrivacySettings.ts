@@ -6,7 +6,7 @@
 
 import { GaxiosError } from 'gaxios';
 import { useState, useEffect, useCallback } from 'react';
-import { Config, CodeAssistServer, UserTierId } from '@gen-cli/gen-cli-core';
+import { Config, CodeAssistServer, UserTierId } from '@rv192/gem-cli-core';
 
 export interface PrivacyState {
   isLoading: boolean;

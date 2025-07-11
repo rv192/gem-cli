@@ -30,7 +30,7 @@ An enhanced command-line AI workflow tool forked from [Google Gemini CLI](https:
 
 **Option 1: Install globally**
 ```bash
-npm install -g @gen-cli/gen-cli
+npm install -g @rv192/gem-cli
 gen
 ```
 
@@ -237,7 +237,7 @@ For more help, see the [troubleshooting guide](docs/troubleshooting.md).
 ## 🗑️ Uninstall
 
 ```bash
-npm uninstall -g @gen-cli/gen-cli
+npm uninstall -g @rv192/gem-cli
 ```
 
 For detailed uninstallation instructions, see the [Uninstall Guide](docs/Uninstall.md).

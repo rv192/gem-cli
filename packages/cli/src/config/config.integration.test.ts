@@ -12,7 +12,7 @@ import {
   Config,
   ConfigParameters,
   ContentGeneratorConfig,
-} from '@gen-cli/gen-cli-core';
+} from '@rv192/gem-cli-core';
 
 const TEST_CONTENT_GENERATOR_CONFIG: ContentGeneratorConfig = {
   apiKey: 'test-key',
@@ -21,8 +21,8 @@ const TEST_CONTENT_GENERATOR_CONFIG: ContentGeneratorConfig = {
 };
 
 // Mock file discovery service and tool registry
-vi.mock('@gen-cli/gen-cli-core', async () => {
-  const actual = await vi.importActual('@gen-cli/gen-cli-core');
+vi.mock('@rv192/gem-cli-core', async () => {
+  const actual = await vi.importActual('@rv192/gem-cli-core');
   return {
     ...actual,
     FileDiscoveryService: vi.fn().mockImplementation(() => ({

@@ -6,7 +6,7 @@
 
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import { getProjectTempDir } from '@gen-cli/gen-cli-core';
+import { getProjectTempDir } from '@rv192/gem-cli-core';
 
 export async function cleanupCheckpoints() {
   const tempDir = getProjectTempDir(process.cwd());

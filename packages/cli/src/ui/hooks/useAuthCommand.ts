@@ -11,7 +11,7 @@ import {
   Config,
   clearCachedCredentialFile,
   getErrorMessage,
-} from '@gen-cli/gen-cli-core';
+} from '@rv192/gem-cli-core';
 
 export const useAuthCommand = (
   settings: LoadedSettings,

@@ -24,7 +24,7 @@ import {
   ThoughtSummary,
   UnauthorizedError,
   UserPromptEvent,
-} from '@gen-cli/gen-cli-core';
+} from '@rv192/gem-cli-core';
 import { type Part, type PartListUnion } from '@google/genai';
 import {
   StreamingState,

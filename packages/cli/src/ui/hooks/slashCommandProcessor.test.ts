@@ -68,7 +68,7 @@ import {
   getMCPDiscoveryState,
   getMCPServerStatus,
   GeminiClient,
-} from '@gen-cli/gen-cli-core';
+} from '@rv192/gem-cli-core';
 import { useSessionStats } from '../contexts/SessionContext.js';
 import { LoadedSettings } from '../../config/settings.js';
 import * as ShowMemoryCommandModule from './useShowMemoryCommand.js';
@@ -798,7 +798,7 @@ describe('useSlashCommandProcessor', () => {
   describe('/mcp command', () => {
     beforeEach(() => {
       // Mock the core module with getMCPServerStatus and getMCPDiscoveryState
-      vi.mock('@gen-cli/gen-cli-core', async (importOriginal) => {
+      vi.mock('@rv192/gem-cli-core', async (importOriginal) => {
         const actual = await importOriginal();
         return {
           ...actual,
