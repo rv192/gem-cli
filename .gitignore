@@ -40,3 +40,5 @@ packages/core/LICENSE
 packages/cli/LICENSE
 packages/cli/README.md
 packages/core/README.md
+.gitsecret/keys/random_seed
+!*.secret
