@@ -28,8 +28,20 @@ export const useAuthCommand = (
 
   useEffect(() => {
     const authFlow = async () => {
-      const authType = settings.merged.selectedAuthType;
-      if (isAuthDialogOpen || !authType) {
+      let authType = settings.merged.selectedAuthType;
+
+      // If no auth type is set, determine default based on environment
+      if (!authType) {
+        // 如果设置了 OPENAI_API_KEY，优先使用 OpenAI Compatible
+        if (process.env.OPENAI_API_KEY) {
+          authType = AuthType.USE_OPENAI_COMPATIBLE;
+        } else {
+          // 否则使用 SiliconFlow 作为默认
+          authType = AuthType.USE_SILICONFLOW;
+        }
+      }
+
+      if (isAuthDialogOpen) {
         return;
       }
 
