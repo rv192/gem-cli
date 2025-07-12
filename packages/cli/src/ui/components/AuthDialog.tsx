@@ -4,18 +4,39 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { Colors } from '../colors.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
 import { AuthType } from '@rv192/gem-cli-core';
 import { validateAuthMethod } from '../../config/auth.js';
+import { loadEnvironment } from '../../config/settings.js';
 
 interface AuthDialogProps {
   onSelect: (authMethod: AuthType | undefined, scope: SettingScope) => void;
   settings: LoadedSettings;
   initialErrorMessage?: string | null;
+}
+
+// Helper function to extract service name from URL
+function getServiceNameFromUrl(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname;
+
+    // Extract the main domain name
+    const parts = hostname.split('.');
+    if (parts.length >= 2) {
+      // For domains like "api.openai.com", return "openai"
+      // For domains like "gemini.72live.com", return "72live"
+      const mainPart = parts[parts.length - 2];
+      return mainPart.charAt(0).toUpperCase() + mainPart.slice(1);
+    }
+    return hostname;
+  } catch {
+    return 'Custom API';
+  }
 }
 
 export function AuthDialog({
@@ -26,19 +47,70 @@ export function AuthDialog({
   const [errorMessage, setErrorMessage] = useState<string | null>(
     initialErrorMessage || null,
   );
-  const items = [
-    { label: 'SiliconFlow API Key', value: AuthType.USE_SILICONFLOW },
-  ];
+
+  // Load environment variables
+  loadEnvironment();
+
+  // Build dynamic items list
+  const items = useMemo(() => {
+    const itemsList: Array<{ label: string; value: AuthType; disabled?: boolean }> = [];
+
+    // Check if OPENAI_API_KEY is configured
+    const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
+    const openAIBaseUrl = process.env.OPENAI_BASE_URL || 'https://api.openai.com';
+    const serviceName = getServiceNameFromUrl(openAIBaseUrl);
+
+    if (hasOpenAIKey) {
+      // If OPENAI_KEY is configured, add it as the first option with BASEURL name
+      itemsList.push({
+        label: `${serviceName} API`,
+        value: AuthType.USE_OPENAI_COMPATIBLE,
+      });
+
+      // Add SiliconFlow as second option
+      itemsList.push({
+        label: 'SiliconFlow API (默认渠道和模型)',
+        value: AuthType.USE_SILICONFLOW,
+      });
+    } else {
+      // If OPENAI_KEY is not configured, SiliconFlow comes first
+      itemsList.push({
+        label: 'SiliconFlow API (默认渠道和模型)',
+        value: AuthType.USE_SILICONFLOW,
+      });
+
+      // Show OpenAI Compatible as disabled
+      itemsList.push({
+        label: 'OpenAI Compatible API (需要设置 OPENAI_API_KEY)',
+        value: AuthType.USE_OPENAI_COMPATIBLE,
+        disabled: true,
+      });
+    }
+
+    return itemsList;
+  }, [process.env.OPENAI_API_KEY, process.env.OPENAI_BASE_URL]);
 
   let initialAuthIndex = items.findIndex(
-    (item) => item.value === settings.merged.selectedAuthType,
+    (item) => item.value === settings.merged.selectedAuthType && !item.disabled,
   );
 
+  // If no valid selection found, default to the first non-disabled option
+  // Since we've arranged items based on OPENAI_KEY availability, the first item is always the preferred default
   if (initialAuthIndex === -1) {
-    initialAuthIndex = 0;
+    initialAuthIndex = items.findIndex(item => !item.disabled);
+    if (initialAuthIndex === -1) {
+      initialAuthIndex = 0; // Final fallback to first item
+    }
   }
 
   const handleAuthSelect = (authMethod: AuthType) => {
+    // Find the selected item to check if it's disabled
+    const selectedItem = items.find(item => item.value === authMethod);
+    if (selectedItem?.disabled) {
+      setErrorMessage('此选项需要先配置相应的环境变量');
+      return;
+    }
+
     const error = validateAuthMethod(authMethod);
     if (error) {
       setErrorMessage(error);

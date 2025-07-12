@@ -11,7 +11,7 @@ import {
   PartUnion,
 } from '@google/genai';
 import OpenAI from 'openai';
-import { ContentGenerator } from './contentGenerator.js';
+import { ContentGenerator, AuthType } from './contentGenerator.js';
 import { jsonrepair } from 'jsonrepair';
 import { reportError } from '../utils/errorReporting.js';
 
@@ -55,17 +55,25 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
   private fallbackModels: string[];
   private defaultModel: string; // 存储确定的默认模型
 
-  constructor() {
+  constructor(authType?: AuthType) {
     let apiKey: string;
     let baseUrl: string;
     let defaultModel: string;
     let fallbackModels: string[];
 
-    // 优先检查 OPENAI_API_KEY (最高优先级)
-    if (process.env.OPENAI_API_KEY) {
-      apiKey = process.env.OPENAI_API_KEY;
-      baseUrl = process.env.OPENAI_BASE_URL || 'https://api.openai.com'; // OpenAI 默认 URL
-      defaultModel = process.env.DEFAULT_MODEL || 'gpt-4o'; // OpenAI 默认模型
+    // 根据认证类型决定配置
+    if (authType === AuthType.USE_SILICONFLOW) {
+      // 强制使用 SiliconFlow 配置
+      apiKey = process.env.SILICONFLOW_API_KEY || 'sk-ybhnlsuxeobtrbijnowwrvloegnguaihmjvervuhqqzrhzqm';
+      baseUrl = process.env.SILICONFLOW_BASE_URL || 'https://api.siliconflow.cn';
+      defaultModel = process.env.SILICONFLOW_DEFAULT_MODEL || 'THUDM/GLM-4-9B-0414';
+      fallbackModels = []; // SiliconFlow 不使用回退模型
+      console.log('使用 SiliconFlow API 配置。');
+    } else if (authType === AuthType.USE_OPENAI_COMPATIBLE) {
+      // 强制使用 OpenAI 兼容配置
+      apiKey = process.env.OPENAI_API_KEY || '';
+      baseUrl = process.env.OPENAI_BASE_URL || 'https://api.openai.com';
+      defaultModel = process.env.DEFAULT_MODEL || 'gpt-4o';
       const fallbackModelsEnv = process.env.FALLBACK_MODELS;
       fallbackModels = fallbackModelsEnv ? fallbackModelsEnv.split(',').map(m => m.trim()) : [
         'gpt-4-turbo',
@@ -73,12 +81,24 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
       ];
       console.log('使用 OpenAI 兼容 API 配置。');
     } else {
-      // 如果 OPENAI_API_KEY 未设置，则回退到 SiliconFlow
-      apiKey = process.env.SILICONFLOW_API_KEY || 'sk-ybhnlsuxeobtrbijnowwrvloegnguaihmjvervuhqqzrhzqm'; // SiliconFlow 公共密钥
-      baseUrl = process.env.SILICONFLOW_BASE_URL || 'https://api.siliconflow.cn'; // SiliconFlow 固定基础 URL
-      defaultModel = process.env.DEFAULT_SILICONFLOW_MODEL || 'THUDM/GLM-4-9B-0414'; // SiliconFlow 固定默认模型
-      fallbackModels = []; // SiliconFlow 不使用回退模型
-      console.log('使用 SiliconFlow API 作为备用。');
+      // 向后兼容：如果没有指定认证类型，使用原来的逻辑
+      if (process.env.OPENAI_API_KEY) {
+        apiKey = process.env.OPENAI_API_KEY;
+        baseUrl = process.env.OPENAI_BASE_URL || 'https://api.openai.com';
+        defaultModel = process.env.DEFAULT_MODEL || 'gpt-4o';
+        const fallbackModelsEnv = process.env.FALLBACK_MODELS;
+        fallbackModels = fallbackModelsEnv ? fallbackModelsEnv.split(',').map(m => m.trim()) : [
+          'gpt-4-turbo',
+          'gpt-3.5-turbo'
+        ];
+        console.log('使用 OpenAI 兼容 API 配置。');
+      } else {
+        apiKey = process.env.SILICONFLOW_API_KEY || 'sk-ybhnlsuxeobtrbijnowwrvloegnguaihmjvervuhqqzrhzqm';
+        baseUrl = process.env.SILICONFLOW_BASE_URL || 'https://api.siliconflow.cn';
+        defaultModel = process.env.SILICONFLOW_DEFAULT_MODEL || 'THUDM/GLM-4-9B-0414';
+        fallbackModels = [];
+        console.log('使用 SiliconFlow API 作为备用。');
+      }
     }
 
     // 确保 baseURL 以 /v1 结尾，以兼容 OpenAI 客户端
@@ -153,7 +173,16 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
       );
       if (textParts.length > 0) {
         const combinedText = textParts
-          .map((part: { text: string }) => part.text)
+          .map((part: { text: string }) => {
+            // 确保文本正确编码，避免 ByteString 转换错误
+            try {
+              // 使用 JSON.stringify 和 JSON.parse 来确保 Unicode 字符正确处理
+              return JSON.parse(JSON.stringify(part.text));
+            } catch {
+              // 如果 JSON 处理失败，直接返回原文本
+              return part.text;
+            }
+          })
           .join('\n');
         messages.push({
           role,

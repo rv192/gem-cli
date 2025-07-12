@@ -18,9 +18,7 @@ export const useAuthCommand = (
   setAuthError: (error: string | null) => void,
   config: Config,
 ) => {
-  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(
-    settings.merged.selectedAuthType === undefined,
-  );
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(true);
 
   const openAuthDialog = useCallback(() => {
     setIsAuthDialogOpen(true);
@@ -54,7 +52,8 @@ export const useAuthCommand = (
     async (authType: AuthType | undefined, scope: SettingScope) => {
       if (authType) {
         await clearCachedCredentialFile();
-        settings.setValue(scope, 'selectedAuthType', authType);
+        // 不保存到settings中，只临时设置
+        settings.merged.selectedAuthType = authType;
       }
       setIsAuthDialogOpen(false);
       setAuthError(null);

@@ -257,9 +257,22 @@ export class GeminiClient {
     contents: Content[],
     schema: SchemaUnion,
     abortSignal: AbortSignal,
-    model: string = DEFAULT_GEMINI_FLASH_MODEL,
+    model?: string,
     config: GenerateContentConfig = {},
   ): Promise<Record<string, unknown>> {
+    // 根据认证类型确定默认模型
+    const authType = this.config.getContentGeneratorConfig()?.authType;
+    let defaultModel: string;
+    if (authType === AuthType.USE_SILICONFLOW) {
+      defaultModel = process.env.SILICONFLOW_DEFAULT_MODEL || 'THUDM/GLM-4-9B-0414';
+    } else if (authType === AuthType.USE_OPENAI_COMPATIBLE) {
+      defaultModel = process.env.DEFAULT_MODEL || 'gpt-4o';
+    } else {
+      // 对于其他认证类型（如原生Gemini），使用原来的默认值
+      defaultModel = DEFAULT_GEMINI_FLASH_MODEL;
+    }
+
+    const modelToUse = model || defaultModel;
     try {
       const userMemory = this.config.getUserMemory();
       const systemInstruction = getCoreSystemPrompt(userMemory);
@@ -271,7 +284,7 @@ export class GeminiClient {
 
       const apiCall = () =>
         this.getContentGenerator().generateContent({
-          model,
+          model: modelToUse,
           config: {
             ...requestConfig,
             systemInstruction,
@@ -301,20 +314,41 @@ export class GeminiClient {
         throw error;
       }
       try {
+        // 首先尝试直接解析
         return JSON.parse(jsonrepair(text));
       } catch (parseError) {
-        await reportError(
-          parseError,
-          'Failed to parse JSON response from generateJson.',
-          {
-            responseTextFailedToParse: text,
-            originalRequestContents: contents,
-          },
-          'generateJson-parse',
-        );
-        throw new Error(
-          `Failed to parse API response as JSON: ${getErrorMessage(parseError)}`,
-        );
+        // 如果直接解析失败，尝试提取 JSON 内容
+        try {
+          // 尝试从 Markdown 代码块中提取 JSON
+          const jsonMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+          if (jsonMatch) {
+            return JSON.parse(jsonrepair(jsonMatch[1]));
+          }
+
+          // 尝试查找第一个 { 到最后一个 } 的内容
+          const firstBrace = text.indexOf('{');
+          const lastBrace = text.lastIndexOf('}');
+          if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+            const jsonContent = text.substring(firstBrace, lastBrace + 1);
+            return JSON.parse(jsonrepair(jsonContent));
+          }
+
+          // 如果都失败了，抛出原始错误
+          throw parseError;
+        } catch (secondParseError) {
+          await reportError(
+            parseError,
+            'Failed to parse JSON response from generateJson.',
+            {
+              responseTextFailedToParse: text,
+              originalRequestContents: contents,
+            },
+            'generateJson-parse',
+          );
+          throw new Error(
+            `Failed to parse API response as JSON: ${getErrorMessage(parseError)}`,
+          );
+        }
       }
     } catch (error) {
       if (abortSignal.aborted) {

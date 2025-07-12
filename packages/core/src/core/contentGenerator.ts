@@ -39,6 +39,7 @@ export enum AuthType {
   LOGIN_WITH_GOOGLE = 'oauth-personal',
   USE_GEMINI = 'gemini-api-key',
   USE_SILICONFLOW = 'siliconflow-api-key',
+  USE_OPENAI_COMPATIBLE = 'openai-compatible-api-key',
   USE_VERTEX_AI = 'vertex-ai',
 }
 
@@ -60,7 +61,19 @@ export async function createContentGeneratorConfig(
   const googleCloudLocation = process.env.GOOGLE_CLOUD_LOCATION;
 
   // Use runtime model from config if available, otherwise fallback to parameter or default
-  const effectiveModel = config?.getModel?.() || model || DEFAULT_GEMINI_MODEL;
+  let effectiveModel: string;
+
+  // 根据认证类型确定默认模型
+  if (authType === AuthType.USE_SILICONFLOW) {
+    // SiliconFlow 强制使用自己的默认模型，不受传入参数影响
+    effectiveModel = process.env.SILICONFLOW_DEFAULT_MODEL || 'THUDM/GLM-4-9B-0414';
+  } else if (authType === AuthType.USE_OPENAI_COMPATIBLE) {
+    // OpenAI Compatible 使用传入的模型或环境变量
+    effectiveModel = config?.getModel?.() || model || process.env.DEFAULT_MODEL || 'gpt-4o';
+  } else {
+    // 对于其他认证类型（如原生Gemini），保留原来的逻辑
+    effectiveModel = config?.getModel?.() || model || DEFAULT_GEMINI_MODEL;
+  }
 
   const contentGeneratorConfig: ContentGeneratorConfig = {
     model: effectiveModel,
@@ -111,16 +124,14 @@ export async function createContentGenerator(
       'User-Agent': `GeminiCLI/${version} (${process.platform}; ${process.arch})`,
     },
   };
-  if (config.authType === AuthType.USE_SILICONFLOW) {
+  if (config.authType === AuthType.USE_SILICONFLOW || config.authType === AuthType.USE_OPENAI_COMPATIBLE) {
     const apiKey = process.env.OPENAI_API_KEY || process.env.SILICONFLOW_API_KEY;
     if (!apiKey) {
       throw new Error(
-        'OPENAI_API_KEY environment variable is not set. Please set it to use OpenAI-compatible API.',
+        'OPENAI_API_KEY or SILICONFLOW_API_KEY environment variable is not set. Please set it to use OpenAI-compatible API.',
       );
     }
-    // Support custom base URL via environment variables
-    const baseUrl = process.env.OPENAI_BASE_URL || process.env.SILICONFLOW_BASE_URL;
-    return new OpenAICompatibleContentGenerator();
+    return new OpenAICompatibleContentGenerator(config.authType);
   }
   if (config.authType === AuthType.LOGIN_WITH_GOOGLE) {
     return createCodeAssistContentGenerator(

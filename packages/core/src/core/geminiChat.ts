@@ -142,12 +142,19 @@ export class GeminiChat {
 
     // Load fallback models from environment variable
     const fallbackModelsEnv = process.env.FALLBACK_MODELS;
-    this.fallbackModels = fallbackModelsEnv ? fallbackModelsEnv.split(',').map(m => m.trim()) : [
-      'gemini-2.5-flash',
-      'gemini-2.5-lite',
-      'gemini-2.0-flash',
-      'gemini-1.5-flash'
-    ];
+    const authType = this.config.getContentGeneratorConfig()?.authType;
+
+    // SiliconFlow 不使用 fallback 模型
+    if (authType === AuthType.USE_SILICONFLOW) {
+      this.fallbackModels = [];
+    } else {
+      this.fallbackModels = fallbackModelsEnv ? fallbackModelsEnv.split(',').map(m => m.trim()) : [
+        'gemini-2.5-flash',
+        'gemini-2.5-lite',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash'
+      ];
+    }
   }
 
   private async tryWithFallbackModelsForStream(

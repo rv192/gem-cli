@@ -143,15 +143,30 @@ export async function main() {
   const extensions = loadExtensions(workspaceRoot);
   const config = await loadCliConfig(settings.merged, extensions, sessionId);
 
-  // set default fallback to gemini api key
+  // 不自动设置认证类型，总是让用户选择
+  // set default fallback auth type based on available environment variables
   // this has to go after load cli because that's where the env is set
-  if (!settings.merged.selectedAuthType && process.env.GEMINI_API_KEY) {
-    settings.setValue(
-      SettingScope.User,
-      'selectedAuthType',
-      AuthType.USE_GEMINI,
-    );
+  // 注释掉自动设置逻辑，强制用户每次都选择
+  /*
+  if (!settings.merged.selectedAuthType) {
+    if (process.env.OPENAI_API_KEY) {
+      // If OPENAI_API_KEY is set, prioritize it
+      settings.setValue(
+        SettingScope.User,
+        'selectedAuthType',
+        AuthType.USE_OPENAI_COMPATIBLE,
+      );
+    } else if (process.env.GEMINI_API_KEY) {
+      // Fallback to Gemini API key
+      settings.setValue(
+        SettingScope.User,
+        'selectedAuthType',
+        AuthType.USE_GEMINI,
+      );
+    }
+    // If neither is set, let the auth dialog handle it
   }
+  */
 
   setMaxSizedBoxDebugging(config.getDebugMode());
 
@@ -321,16 +336,25 @@ async function validateNonInterActiveAuth(
   nonInteractiveConfig: Config,
 ) {
   // making a special case for the cli. many headless environments might not have a settings.json set
-  // so if GEMINI_API_KEY is set, we'll use that. However since the oauth things are interactive anyway, we'll
+  // so if API keys are set, we'll use them. However since the oauth things are interactive anyway, we'll
   // still expect that exists
-  if (!selectedAuthType && !process.env.GEMINI_API_KEY) {
+  if (!selectedAuthType && !process.env.OPENAI_API_KEY && !process.env.GEMINI_API_KEY) {
     console.error(
-      `Please set an Auth method in your ${USER_SETTINGS_PATH} OR specify GEMINI_API_KEY env variable file before running`,
+      `Please set an Auth method in your ${USER_SETTINGS_PATH} OR specify OPENAI_API_KEY or GEMINI_API_KEY env variable file before running`,
     );
     process.exit(1);
   }
 
-  selectedAuthType = selectedAuthType || AuthType.USE_SILICONFLOW;
+  // Set default auth type based on available environment variables
+  if (!selectedAuthType) {
+    if (process.env.OPENAI_API_KEY) {
+      selectedAuthType = AuthType.USE_OPENAI_COMPATIBLE;
+    } else if (process.env.GEMINI_API_KEY) {
+      selectedAuthType = AuthType.USE_GEMINI;
+    } else {
+      selectedAuthType = AuthType.USE_SILICONFLOW;
+    }
+  }
   const err = validateAuthMethod(selectedAuthType);
   if (err != null) {
     console.error(err);

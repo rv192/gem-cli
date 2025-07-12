@@ -13,8 +13,7 @@ import {
   setGeminiMdFilename as setServerGeminiMdFilename,
   getCurrentGeminiMdFilename,
   ApprovalMode,
-  DEFAULT_GEMINI_MODEL,
-  DEFAULT_GEMINI_EMBEDDING_MODEL,
+
   FileDiscoveryService,
   TelemetryTarget,
 } from '@rv192/gem-cli-core';
@@ -57,7 +56,7 @@ async function parseArguments(): Promise<CliArgs> {
       alias: 'm',
       type: 'string',
       description: `Model`,
-      default: process.env.DEFAULT_MODEL || process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL,
+      default: process.env.DEFAULT_MODEL || process.env.GEMINI_MODEL || 'gemini-2.5-pro',
     })
     .option('prompt', {
       alias: 'p',
@@ -211,8 +210,8 @@ export async function loadCliConfig(
 
   return new Config({
     sessionId,
-    model: argv.model || DEFAULT_GEMINI_MODEL,
-    embeddingModel: DEFAULT_GEMINI_EMBEDDING_MODEL,
+    model: argv.model || process.env.DEFAULT_MODEL || 'gemini-2.5-pro',
+    embeddingModel: process.env.DEFAULT_EMBEDDING_MODEL || 'text-embedding-3-small',
     sandbox: sandboxConfig,
     targetDir: process.cwd(),
     debugMode,
@@ -240,7 +239,7 @@ export async function loadCliConfig(
         settings.telemetry?.otlpEndpoint,
       logPrompts: argv.telemetryLogPrompts ?? settings.telemetry?.logPrompts,
     },
-    usageStatisticsEnabled: settings.usageStatisticsEnabled ?? true,
+    usageStatisticsEnabled: settings.usageStatisticsEnabled ?? false,
     // Git-aware file filtering settings
     fileFiltering: {
       respectGitIgnore: settings.fileFiltering?.respectGitIgnore,
