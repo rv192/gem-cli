@@ -36,7 +36,6 @@ import {
   sessionId,
   logUserPrompt,
   AuthType,
-  getOpenAICompatibleBaseURL,
 } from '@rv192/gem-cli-core';
 import { validateAuthMethod } from './config/auth.js';
 import { setMaxSizedBoxDebugging } from './ui/components/shared/MaxSizedBox.js';
@@ -218,7 +217,7 @@ export async function main() {
           config={config}
           settings={settings}
           startupWarnings={startupWarnings}
-          apiBaseURL={getOpenAICompatibleBaseURL()}
+          apiBaseURL={config.getApiBaseUrl()}
         />
       </React.StrictMode>,
       { exitOnCtrlC: false },

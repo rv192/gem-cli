@@ -747,7 +747,7 @@ const App = ({
                   )}
                 </Box>
                 <Box>
-                  <EndpointDisplay baseURL={apiBaseURL} />
+                  <EndpointDisplay baseURL={config.getApiBaseUrl()} />
                 </Box>
                 <Box>
                   {showAutoAcceptIndicator !== ApprovalMode.DEFAULT &&

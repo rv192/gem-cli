@@ -293,6 +293,13 @@ export class Config {
     this.flashFallbackHandler = handler;
   }
 
+  getApiBaseUrl(): string {
+    if (process.env.OPENAI_API_KEY) {
+      return process.env.OPENAI_BASE_URL || 'https://api.openai.com';
+    }
+    return process.env.SILICONFLOW_BASE_URL || 'https://api.siliconflow.cn';
+  }
+
   getEmbeddingModel(): string {
     return this.embeddingModel;
   }
