@@ -231,10 +231,15 @@ export class Config {
   }
 
   async refreshAuth(authMethod: AuthType) {
-    // Always use the original default model when switching auth methods
-    // This ensures users don't stay on Flash after switching between auth types
-    // and allows API key users to get proper fallback behavior from getEffectiveModel
-    const modelToUse = this.model; // Use the original default model
+    // 根据认证类型确定要使用的模型
+    let modelToUse: string;
+    if (authMethod === AuthType.USE_SILICONFLOW) {
+      // SiliconFlow 使用自己的默认模型，忽略当前配置的模型
+      modelToUse = process.env.SILICONFLOW_DEFAULT_MODEL || 'THUDM/GLM-4-9B-0414';
+    } else {
+      // 其他认证类型使用原来的默认模型
+      modelToUse = this.model;
+    }
 
     // Temporarily clear contentGeneratorConfig to prevent getModel() from returning
     // the previous session's model (which might be Flash)

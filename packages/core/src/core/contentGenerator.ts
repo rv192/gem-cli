@@ -65,8 +65,9 @@ export async function createContentGeneratorConfig(
 
   // 根据认证类型确定默认模型
   if (authType === AuthType.USE_SILICONFLOW) {
-    // SiliconFlow 强制使用自己的默认模型，不受传入参数影响
+    // SiliconFlow 强制使用自己的默认模型，完全忽略传入参数和配置
     effectiveModel = process.env.SILICONFLOW_DEFAULT_MODEL || 'THUDM/GLM-4-9B-0414';
+    console.log(`SiliconFlow 强制使用模型: ${effectiveModel}`);
   } else if (authType === AuthType.USE_OPENAI_COMPATIBLE) {
     // OpenAI Compatible 使用传入的模型或环境变量
     effectiveModel = config?.getModel?.() || model || process.env.DEFAULT_MODEL || 'gpt-4o';
