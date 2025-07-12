@@ -124,11 +124,21 @@ export async function createContentGenerator(
       'User-Agent': `GeminiCLI/${version} (${process.platform}; ${process.arch})`,
     },
   };
-  if (config.authType === AuthType.USE_SILICONFLOW || config.authType === AuthType.USE_OPENAI_COMPATIBLE) {
-    const apiKey = process.env.OPENAI_API_KEY || process.env.SILICONFLOW_API_KEY;
+  if (config.authType === AuthType.USE_SILICONFLOW) {
+    const apiKey = process.env.SILICONFLOW_API_KEY;
     if (!apiKey) {
       throw new Error(
-        'OPENAI_API_KEY or SILICONFLOW_API_KEY environment variable is not set. Please set it to use OpenAI-compatible API.',
+        'SILICONFLOW_API_KEY environment variable is not set. Please set it to use SiliconFlow API.',
+      );
+    }
+    return new OpenAICompatibleContentGenerator(config.authType);
+  }
+
+  if (config.authType === AuthType.USE_OPENAI_COMPATIBLE) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error(
+        'OPENAI_API_KEY environment variable is not set. Please set it to use OpenAI-compatible API.',
       );
     }
     return new OpenAICompatibleContentGenerator(config.authType);

@@ -81,24 +81,8 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
       ];
       console.log('使用 OpenAI 兼容 API 配置。');
     } else {
-      // 向后兼容：如果没有指定认证类型，使用原来的逻辑
-      if (process.env.OPENAI_API_KEY) {
-        apiKey = process.env.OPENAI_API_KEY;
-        baseUrl = process.env.OPENAI_BASE_URL || 'https://api.openai.com';
-        defaultModel = process.env.DEFAULT_MODEL || 'gpt-4o';
-        const fallbackModelsEnv = process.env.FALLBACK_MODELS;
-        fallbackModels = fallbackModelsEnv ? fallbackModelsEnv.split(',').map(m => m.trim()) : [
-          'gpt-4-turbo',
-          'gpt-3.5-turbo'
-        ];
-        console.log('使用 OpenAI 兼容 API 配置。');
-      } else {
-        apiKey = process.env.SILICONFLOW_API_KEY || 'sk-ybhnlsuxeobtrbijnowwrvloegnguaihmjvervuhqqzrhzqm';
-        baseUrl = process.env.SILICONFLOW_BASE_URL || 'https://api.siliconflow.cn';
-        defaultModel = process.env.SILICONFLOW_DEFAULT_MODEL || 'THUDM/GLM-4-9B-0414';
-        fallbackModels = [];
-        console.log('使用 SiliconFlow API 作为备用。');
-      }
+      // 如果没有指定认证类型，抛出错误
+      throw new Error(`未知的认证类型: ${authType}。请指定有效的认证类型。`);
     }
 
     // 确保 baseURL 以 /v1 结尾，以兼容 OpenAI 客户端
