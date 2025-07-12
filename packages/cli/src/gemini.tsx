@@ -43,18 +43,20 @@ import { existsSync, mkdirSync, copyFileSync } from 'node:fs';
 
 function runFirstTimeSetup() {
   const targetDir = join(os.homedir(), '.gem-cli');
-  // Use import.meta.url to get the path of the current module.
-  // The .env.template file is located at the root of the package.
   const sourceTemplatePath = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '.env.template');
+  const targetEnvPath = join(targetDir, '.env');
   const targetTemplatePath = join(targetDir, '.env.template');
 
   try {
-    if (!existsSync(targetDir)) {
-      mkdirSync(targetDir, { recursive: true });
-    }
+    // Only run setup if the .env file doesn't exist.
+    if (!existsSync(targetEnvPath)) {
+      if (!existsSync(targetDir)) {
+        mkdirSync(targetDir, { recursive: true });
+      }
 
-    if (!existsSync(targetTemplatePath)) {
+      // Copy the template to both .env and .env.template
       copyFileSync(sourceTemplatePath, targetTemplatePath);
+      copyFileSync(sourceTemplatePath, targetEnvPath);
 
       const green = '\x1b[32m';
       const yellow = '\x1b[33m';
@@ -62,16 +64,17 @@ function runFirstTimeSetup() {
       const targetDirForDisplay = '~/.gem-cli';
 
       console.log(`\n${green}============================================================${reset}`);
-      console.log(`${green} Gemini CLI Post-Install Setup Complete! ${reset}`);
+      console.log(`${green} Gemini CLI First-Time Setup Complete! ${reset}`);
       console.log(`${green}------------------------------------------------------------${reset}`);
-      console.log(`A configuration template has been created for you at:`);
-      console.log(`${yellow}${targetDirForDisplay}/.env.template${reset}`);
-      console.log(`\nTo get started, you can copy it to .env and add your API key:`);
-      console.log(`${yellow}cp ${targetDirForDisplay}/.env.template ${targetDirForDisplay}/.env${reset}`);
+      console.log(`A configuration file has been created for you at:`);
+      console.log(`${yellow}${targetDirForDisplay}/.env${reset}`);
+      console.log(`\nIt's ready to use with the default settings (powered by SiliconFlow).`);
+      console.log(`To add your own API keys or customize models, you can edit this file.`);
+      console.log(`A template is also available at ${yellow}${targetDirForDisplay}/.env.template${reset}`);
       console.log(`${green}============================================================${reset}\n`);
     }
   } catch (error) {
-    console.error('Failed to copy .env.template:', error);
+    console.error('Failed to complete first-time setup:', error);
   }
 }
 
