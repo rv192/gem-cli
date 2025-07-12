@@ -161,6 +161,17 @@ export class GeminiChat {
     contents: Content[],
     config: GenerateContentConfig
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
+    // 对于 SiliconFlow，让 OpenAICompatibleContentGenerator 自己处理模型选择
+    const authType = this.config.getContentGeneratorConfig()?.authType;
+    if (authType === AuthType.USE_SILICONFLOW) {
+      console.log('🔍 GeminiChat - SiliconFlow 模式，直接使用 contentGenerator');
+      return await this.contentGenerator.generateContentStream({
+        model: '', // 传递空字符串，让 OpenAICompatibleContentGenerator 使用默认模型
+        contents,
+        config,
+      });
+    }
+
     const modelsToTry = [this.config.getModel(), ...this.fallbackModels];
     let lastError: Error | null = null;
 
@@ -350,9 +361,18 @@ export class GeminiChat {
     let response: GenerateContentResponse;
 
     try {
+      // 对于 SiliconFlow，让 OpenAICompatibleContentGenerator 自己处理模型选择
+      const authType = this.config.getContentGeneratorConfig()?.authType;
+      const modelToUse = authType === AuthType.USE_SILICONFLOW
+        ? '' // 传递空字符串，让 OpenAICompatibleContentGenerator 使用默认模型
+        : this.config.getModel() || DEFAULT_GEMINI_FLASH_MODEL;
+
+      console.log('🔍 GeminiChat.sendMessage - authType:', authType);
+      console.log('🔍 GeminiChat.sendMessage - modelToUse:', modelToUse);
+
       const apiCall = () =>
         this.contentGenerator.generateContent({
-          model: this.config.getModel() || DEFAULT_GEMINI_FLASH_MODEL,
+          model: modelToUse,
           contents: requestContents,
           config: { ...this.generationConfig, ...params.config },
         });
