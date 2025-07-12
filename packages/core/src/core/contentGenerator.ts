@@ -125,12 +125,7 @@ export async function createContentGenerator(
     },
   };
   if (config.authType === AuthType.USE_SILICONFLOW) {
-    const apiKey = process.env.SILICONFLOW_API_KEY;
-    if (!apiKey) {
-      throw new Error(
-        'SILICONFLOW_API_KEY environment variable is not set. Please set it to use SiliconFlow API.',
-      );
-    }
+    // SiliconFlow 有默认的 API 密钥作为兜底，所以不需要检查环境变量
     return new OpenAICompatibleContentGenerator(config.authType);
   }
 

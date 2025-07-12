@@ -60,6 +60,8 @@ export function AuthDialog({
     const openAIBaseUrl = process.env.OPENAI_BASE_URL || 'https://api.openai.com';
     const serviceName = getServiceNameFromUrl(openAIBaseUrl);
 
+
+
     if (hasOpenAIKey) {
       // If OPENAI_KEY is configured, add it as the first option with BASEURL name
       itemsList.push({
@@ -87,21 +89,16 @@ export function AuthDialog({
       });
     }
 
+
+
     return itemsList;
   }, [process.env.OPENAI_API_KEY, process.env.OPENAI_BASE_URL]);
 
-  let initialAuthIndex = items.findIndex(
-    (item) => item.value === settings.merged.selectedAuthType && !item.disabled,
-  );
+  // Always default to the first item since we arrange items by preference
+  // Don't use saved selectedAuthType to avoid confusion
+  let initialAuthIndex = 0;
 
-  // If no valid selection found, default to the first non-disabled option
-  // Since we've arranged items based on OPENAI_KEY availability, the first item is always the preferred default
-  if (initialAuthIndex === -1) {
-    initialAuthIndex = items.findIndex(item => !item.disabled);
-    if (initialAuthIndex === -1) {
-      initialAuthIndex = 0; // Final fallback to first item
-    }
-  }
+
 
   const handleAuthSelect = (authMethod: AuthType) => {
     // Find the selected item to check if it's disabled
