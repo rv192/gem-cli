@@ -46,6 +46,7 @@ copyFiles('core', {
 copyFiles('cli', {
   'README.md': 'README.md',
   LICENSE: 'LICENSE',
+  '.env.template': '.env.template',
 });
 
 console.log('Successfully prepared all packages.');
