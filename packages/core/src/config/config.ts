@@ -245,17 +245,26 @@ export class Config {
     // the previous session's model (which might be Flash)
     this.contentGeneratorConfig = undefined!;
 
+    console.log('🔍 Config.refreshAuth - modelToUse:', modelToUse);
+    console.log('🔍 Config.refreshAuth - authMethod:', authMethod);
+
     const contentConfig = await createContentGeneratorConfig(
       modelToUse,
       authMethod,
       this,
     );
 
+    console.log('🔍 Config.refreshAuth - contentConfig.model:', contentConfig.model);
+    console.log('🔍 Config.refreshAuth - contentConfig.authType:', contentConfig.authType);
+
     const gc = new GeminiClient(this);
     this.geminiClient = gc;
     this.toolRegistry = await createToolRegistry(this);
     await gc.initialize(contentConfig);
     this.contentGeneratorConfig = contentConfig;
+
+    console.log('🔍 Config.refreshAuth - this.contentGeneratorConfig.model:', this.contentGeneratorConfig.model);
+    console.log('🔍 Config.refreshAuth - this.model:', this.model);
 
     // Reset the session flag since we're explicitly changing auth and using default model
     this.modelSwitchedDuringSession = false;
@@ -272,7 +281,11 @@ export class Config {
   }
 
   getModel(): string {
-    return this.contentGeneratorConfig?.model || this.model;
+    const result = this.contentGeneratorConfig?.model || this.model;
+    console.log('🔍 Config.getModel() - contentGeneratorConfig?.model:', this.contentGeneratorConfig?.model);
+    console.log('🔍 Config.getModel() - this.model:', this.model);
+    console.log('🔍 Config.getModel() - result:', result);
+    return result;
   }
 
   setModel(newModel: string): void {
