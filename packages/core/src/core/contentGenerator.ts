@@ -120,7 +120,7 @@ export async function createContentGenerator(
     }
     // Support custom base URL via environment variables
     const baseUrl = process.env.OPENAI_BASE_URL || process.env.SILICONFLOW_BASE_URL;
-    return new OpenAICompatibleContentGenerator(apiKey, baseUrl);
+    return new OpenAICompatibleContentGenerator();
   }
   if (config.authType === AuthType.LOGIN_WITH_GOOGLE) {
     return createCodeAssistContentGenerator(

@@ -15,9 +15,6 @@ import { ContentGenerator } from './contentGenerator.js';
 import { jsonrepair } from 'jsonrepair';
 import { reportError } from '../utils/errorReporting.js';
 
-export function getOpenAICompatibleBaseURL(): string {
-  return process.env.OPENAI_BASE_URL || process.env.SILICONFLOW_BASE_URL || 'https://api.openai.com';
-}
 /**
  * Helper function to convert ContentListUnion to Content[]
  */
@@ -56,63 +53,88 @@ function toContent(content: Content | PartUnion): Content {
 export class OpenAICompatibleContentGenerator implements ContentGenerator {
   private openai: OpenAI;
   private fallbackModels: string[];
+  private defaultModel: string; // 存储确定的默认模型
 
-  constructor(apiKey: string, baseUrl: string = getOpenAICompatibleBaseURL()) {
-    // Ensure baseURL ends with /v1 for OpenAI client compatibility
+  constructor() {
+    let apiKey: string;
+    let baseUrl: string;
+    let defaultModel: string;
+    let fallbackModels: string[];
+
+    // 优先检查 OPENAI_API_KEY (最高优先级)
+    if (process.env.OPENAI_API_KEY) {
+      apiKey = process.env.OPENAI_API_KEY;
+      baseUrl = process.env.OPENAI_BASE_URL || 'https://api.openai.com'; // OpenAI 默认 URL
+      defaultModel = process.env.DEFAULT_MODEL || 'gpt-4o'; // OpenAI 默认模型
+      const fallbackModelsEnv = process.env.FALLBACK_MODELS;
+      fallbackModels = fallbackModelsEnv ? fallbackModelsEnv.split(',').map(m => m.trim()) : [
+        'gpt-4-turbo',
+        'gpt-3.5-turbo'
+      ];
+      console.log('使用 OpenAI 兼容 API 配置。');
+    } else {
+      // 如果 OPENAI_API_KEY 未设置，则回退到 SiliconFlow
+      apiKey = process.env.SILICONFLOW_API_KEY || 'sk-ybhnlsuxeobtrbijnowwrvloegnguaihmjvervuhqqzrhzqm'; // SiliconFlow 公共密钥
+      baseUrl = process.env.SILICONFLOW_BASE_URL || 'https://api.siliconflow.cn'; // SiliconFlow 固定基础 URL
+      defaultModel = process.env.DEFAULT_SILICONFLOW_MODEL || 'THUDM/GLM-4-9B-0414'; // SiliconFlow 固定默认模型
+      fallbackModels = []; // SiliconFlow 不使用回退模型
+      console.log('使用 SiliconFlow API 作为备用。');
+    }
+
+    // 确保 baseURL 以 /v1 结尾，以兼容 OpenAI 客户端
     const normalizedBaseUrl = baseUrl.endsWith('/v1') ? baseUrl : `${baseUrl}/v1`;
     this.openai = new OpenAI({
       apiKey,
       baseURL: normalizedBaseUrl,
     });
 
-    // Load fallback models from environment variable
-    const fallbackModelsEnv = process.env.FALLBACK_MODELS;
-    this.fallbackModels = fallbackModelsEnv ? fallbackModelsEnv.split(',').map(m => m.trim()) : [
-      'gemini-1.5-pro',
-      'gemini-2.0-flash',
-      'gemini-1.5-flash'
-    ];
+    this.fallbackModels = fallbackModels;
+    this.defaultModel = defaultModel; // 存储确定的默认模型
   }
 
   private async tryWithFallbackModels<T>(
-    originalModel: string,
+    requestedModel: string | undefined, // 用户请求的模型，可能为 undefined
     operation: (model: string) => Promise<T>
   ): Promise<T> {
-    const modelsToTry = [originalModel, ...this.fallbackModels];
+    // 确定本次操作要使用的初始模型
+    const initialModel = requestedModel || this.defaultModel;
+    // 尝试的模型列表：首先是初始模型，然后是构造函数中确定的回退模型列表
+    const modelsToTry = [initialModel, ...this.fallbackModels];
     let lastError: Error | null = null;
 
     for (const model of modelsToTry) {
       try {
-        console.log(`Trying model: ${model}`);
+        console.log(`尝试模型: ${model}`);
         return await operation(model);
       } catch (error) {
         lastError = error as Error;
         const errorMessage = error instanceof Error ? error.message : String(error);
         const errorString = JSON.stringify(error);
 
-        console.log(`Model ${model} error: ${errorMessage}`);
-        console.log(`Error details: ${errorString}`);
+        console.log(`模型 ${model} 错误: ${errorMessage}`);
+        console.log(`错误详情: ${errorString}`);
 
-        // Check if it's a model exhaustion or streaming error
-        if (errorMessage.includes('Streaming failed') ||
+        // 检查是否是模型耗尽或流式传输错误，并且只有在配置了回退模型时才尝试回退
+        if (this.fallbackModels.length > 0 && (
+            errorMessage.includes('Streaming failed') ||
             errorMessage.includes('rate limit') ||
             errorMessage.includes('quota') ||
             errorMessage.includes('exhausted') ||
             errorMessage.includes('Internal server error') ||
             errorMessage.includes('API Error') ||
-            errorString.includes('Streaming failed')) {
-          console.log(`Model ${model} failed: ${errorMessage}, trying next model...`);
+            errorString.includes('Streaming failed'))) {
+          console.log(`模型 ${model} 失败: ${errorMessage}, 尝试下一个模型...`);
           continue;
         }
 
-        // For other errors, don't try fallback models
-        console.log(`Model ${model} failed with non-retryable error: ${errorMessage}`);
+        // 对于其他错误，或者如果没有配置回退模型，则不尝试回退模型
+        console.log(`模型 ${model} 失败，原因不可重试或未配置回退: ${errorMessage}`);
         throw error;
       }
     }
 
-    // If all models failed, throw the last error
-    throw lastError || new Error('All models failed');
+    // 如果所有模型都失败了，抛出最后一个错误
+    throw lastError || new Error('所有模型都失败了');
   }
 
   private convertToOpenAIMessages(
@@ -296,7 +318,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
         return [];
       });
 
-    // Use fallback mechanism for streaming
+    // 使用回退机制进行流式传输
     const stream = await this.tryWithFallbackModels(request.model, async (model) => {
       const params = {
         model,
@@ -339,7 +361,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
             ];
             yield geminiResponse;
           }
-          // Handle tool call deltas
+          // 处理工具调用增量
           if (choice?.delta?.tool_calls) {
             for (const toolCall of choice.delta.tool_calls) {
               const idx = toolCall.index;
@@ -348,12 +370,12 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
                 arguments: '',
               };
 
-              // Update name if provided
+              // 如果提供了名称，则更新名称
               if (toolCall.function?.name) {
                 current.name = toolCall.function.name;
               }
 
-              // Accumulate arguments
+              // 累积参数
               if (toolCall.function?.arguments) {
                 current.arguments += toolCall.function.arguments;
               }
@@ -368,14 +390,14 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
             } catch (error) {
               reportError(
                 error,
-                'Error when talking to OpenAI-compatible API',
+                '与 OpenAI 兼容 API 通信时出错',
                 { str },
                 'OpenAICompatible.parseToolCallArguments',
               );
               throw error;
             }
           };
-          // Flush completed tool calls on finish
+          // 在完成时刷新已完成的工具调用
           if (choice.finish_reason === 'tool_calls' && toolCallMap.size > 0) {
             const geminiResponse = new GenerateContentResponse();
             geminiResponse.candidates = [
@@ -398,7 +420,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
               },
             ];
             yield geminiResponse;
-            toolCallMap.clear(); // Reset for next tool calls
+            toolCallMap.clear(); // 为下一次工具调用重置
           }
 
           if (choice?.finish_reason) {
@@ -430,7 +452,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
 
     const tools = undefined;
 
-    // Use fallback mechanism for non-streaming requests
+    // 使用回退机制进行非流式请求
     const completion = await this.tryWithFallbackModels(request.model, async (model) => {
       return await this.openai.chat.completions.create({
         model,
@@ -451,7 +473,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
   ): Promise<CountTokensResponse> {
     const contentsArray = toContents(request.contents);
 
-    // We'll estimate based on the text length (rough approximation: 4 chars per token)
+    // 我们将根据文本长度进行估算（粗略近似：每 4 个字符一个 token）
     const messages = this.convertToOpenAIMessages(contentsArray);
     const totalText = messages.map((m) => m.content).join(' ');
     const estimatedTokens = Math.ceil(totalText.length / 4);
