@@ -233,9 +233,12 @@ const App = ({
   useEffect(() => {
     const checkModelChange = () => {
       const configModel = config.getModel();
-      if (configModel !== currentModel) {
-        setCurrentModel(configModel);
-      }
+      setCurrentModel(prevModel => {
+        if (configModel !== prevModel) {
+          return configModel;
+        }
+        return prevModel;
+      });
     };
 
     // Check immediately and then periodically
@@ -243,7 +246,7 @@ const App = ({
     const interval = setInterval(checkModelChange, 1000); // Check every second
 
     return () => clearInterval(interval);
-  }, [config, currentModel]);
+  }, [config]); // Remove currentModel from dependencies to avoid infinite loop
 
   // Set up Flash fallback handler
   useEffect(() => {

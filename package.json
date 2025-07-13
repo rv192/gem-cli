@@ -1,6 +1,6 @@
 {
   "name": "@rv192/gem-cli",
-  "version": "0.5.20",
+  "version": "0.5.21",
   "engines": {
     "node": ">=20.0.0"
   },

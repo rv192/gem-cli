@@ -39,7 +39,7 @@ vi.mock('../tools/memoryTool', () => ({
   setGeminiMdFilename: vi.fn(),
   getCurrentGeminiMdFilename: vi.fn(() => 'GEMINI.md'), // Mock the original filename
   DEFAULT_CONTEXT_FILENAME: 'GEMINI.md',
-  GEMINI_CONFIG_DIR: '.gemini',
+  GEMINI_CONFIG_DIR: '.gem-cli',
 }));
 
 vi.mock('../core/contentGenerator.js', async (importOriginal) => {

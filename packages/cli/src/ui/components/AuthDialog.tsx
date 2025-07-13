@@ -62,32 +62,27 @@ export function AuthDialog({
 
 
 
+    // OpenAI渠道作为第一行
     if (hasOpenAIKey) {
-      // If OPENAI_KEY is configured, add it as the first option with BASEURL name
+      // 如果配置了KEY，则显示BaseURL名
       itemsList.push({
         label: `${serviceName} API`,
         value: AuthType.USE_OPENAI_COMPATIBLE,
       });
-
-      // Add SiliconFlow as second option
-      itemsList.push({
-        label: 'SiliconFlow API (默认渠道和模型)',
-        value: AuthType.USE_SILICONFLOW,
-      });
     } else {
-      // If OPENAI_KEY is not configured, SiliconFlow comes first
+      // 否则显示OpenAI Comp...API(待配置)
       itemsList.push({
-        label: 'SiliconFlow API (默认渠道和模型)',
-        value: AuthType.USE_SILICONFLOW,
-      });
-
-      // Show OpenAI Compatible as disabled
-      itemsList.push({
-        label: 'OpenAI Compatible API (需要设置 OPENAI_API_KEY)',
+        label: 'OpenAI Compatible API (待配置)',
         value: AuthType.USE_OPENAI_COMPATIBLE,
         disabled: true,
       });
     }
+
+    // SiliconFlow作为第二行
+    itemsList.push({
+      label: 'SiliconFlow API (默认渠道和模型)',
+      value: AuthType.USE_SILICONFLOW,
+    });
 
 
 

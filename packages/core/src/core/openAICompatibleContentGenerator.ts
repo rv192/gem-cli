@@ -68,9 +68,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
       baseUrl = process.env.SILICONFLOW_BASE_URL || 'https://api.siliconflow.cn';
       defaultModel = process.env.SILICONFLOW_DEFAULT_MODEL || 'THUDM/GLM-4-9B-0414';
       fallbackModels = []; // SiliconFlow 不使用回退模型
-      console.log('🔍 OpenAICompatibleContentGenerator - 使用 SiliconFlow API 配置');
-      console.log('🔍 OpenAICompatibleContentGenerator - SiliconFlow defaultModel:', defaultModel);
-      console.log('🔍 OpenAICompatibleContentGenerator - SiliconFlow fallbackModels:', fallbackModels);
+
     } else if (authType === AuthType.USE_OPENAI_COMPATIBLE) {
       // 强制使用 OpenAI 兼容配置
       apiKey = process.env.OPENAI_API_KEY || '';
@@ -97,8 +95,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
     this.fallbackModels = fallbackModels;
     this.defaultModel = defaultModel; // 存储确定的默认模型
 
-    console.log('🔍 OpenAICompatibleContentGenerator - Final this.defaultModel:', this.defaultModel);
-    console.log('🔍 OpenAICompatibleContentGenerator - Final this.fallbackModels:', this.fallbackModels);
+
   }
 
   private async tryWithFallbackModels<T>(
@@ -111,11 +108,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
     const modelsToTry = [initialModel, ...this.fallbackModels];
     let lastError: Error | null = null;
 
-    console.log('🔍 tryWithFallbackModels - requestedModel:', requestedModel);
-    console.log('🔍 tryWithFallbackModels - this.defaultModel:', this.defaultModel);
-    console.log('🔍 tryWithFallbackModels - initialModel:', initialModel);
-    console.log('🔍 tryWithFallbackModels - this.fallbackModels:', this.fallbackModels);
-    console.log('🔍 tryWithFallbackModels - modelsToTry:', modelsToTry);
+
 
     for (const model of modelsToTry) {
       try {

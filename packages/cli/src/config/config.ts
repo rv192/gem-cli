@@ -208,24 +208,9 @@ export async function loadCliConfig(
 
   const sandboxConfig = await loadSandboxConfig(settings, argv);
 
-  // 简化模型选择逻辑：直接根据环境变量确定默认模型
-  let defaultModel: string;
-  if (argv.model) {
-    // 如果命令行指定了模型，使用命令行参数
-    defaultModel = argv.model;
-  } else if (process.env.OPENAI_API_KEY) {
-    // 如果设置了 OPENAI_API_KEY，使用 OpenAI 模型
-    defaultModel = process.env.DEFAULT_MODEL || 'gemini-2.5-pro';
-  } else {
-    // 否则使用 SiliconFlow 模型
-    defaultModel = process.env.SILICONFLOW_DEFAULT_MODEL || 'THUDM/GLM-4-9B-0414';
-  }
-
-
-
   return new Config({
     sessionId,
-    model: defaultModel,
+    model: argv.model || process.env.DEFAULT_MODEL || 'gemini-2.5-pro',
     embeddingModel: process.env.DEFAULT_EMBEDDING_MODEL || 'text-embedding-3-small',
     sandbox: sandboxConfig,
     targetDir: process.cwd(),

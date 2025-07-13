@@ -263,24 +263,16 @@ export class GeminiClient {
     // 根据认证类型确定默认模型
     const authType = this.config.getContentGeneratorConfig()?.authType;
     let defaultModel: string;
-
-    console.log('🔍 GeminiClient.generateJson - authType:', authType);
-
     if (authType === AuthType.USE_SILICONFLOW) {
       defaultModel = process.env.SILICONFLOW_DEFAULT_MODEL || 'THUDM/GLM-4-9B-0414';
-      console.log('🔍 GeminiClient.generateJson - SiliconFlow defaultModel:', defaultModel);
     } else if (authType === AuthType.USE_OPENAI_COMPATIBLE) {
       defaultModel = process.env.DEFAULT_MODEL || 'gpt-4o';
-      console.log('🔍 GeminiClient.generateJson - OpenAI Compatible defaultModel:', defaultModel);
     } else {
       // 对于其他认证类型（如原生Gemini），使用原来的默认值
       defaultModel = DEFAULT_GEMINI_FLASH_MODEL;
-      console.log('🔍 GeminiClient.generateJson - Gemini defaultModel:', defaultModel);
     }
 
     const modelToUse = model || defaultModel;
-    console.log('🔍 GeminiClient.generateJson - model param:', model);
-    console.log('🔍 GeminiClient.generateJson - modelToUse:', modelToUse);
     try {
       const userMemory = this.config.getUserMemory();
       const systemInstruction = getCoreSystemPrompt(userMemory);
@@ -388,23 +380,7 @@ export class GeminiClient {
     generationConfig: GenerateContentConfig,
     abortSignal: AbortSignal,
   ): Promise<GenerateContentResponse> {
-    // 根据认证类型确定默认模型
-    const authType = this.config.getContentGeneratorConfig()?.authType;
-    let modelToUse: string;
-
-    console.log('🔍 GeminiClient.generateContent - authType:', authType);
-
-    if (authType === AuthType.USE_SILICONFLOW) {
-      modelToUse = process.env.SILICONFLOW_DEFAULT_MODEL || 'THUDM/GLM-4-9B-0414';
-      console.log('🔍 GeminiClient.generateContent - SiliconFlow modelToUse:', modelToUse);
-    } else if (authType === AuthType.USE_OPENAI_COMPATIBLE) {
-      modelToUse = process.env.DEFAULT_MODEL || 'gpt-4o';
-      console.log('🔍 GeminiClient.generateContent - OpenAI Compatible modelToUse:', modelToUse);
-    } else {
-      // 对于其他认证类型（如原生Gemini），使用配置的模型
-      modelToUse = this.config.getModel();
-      console.log('🔍 GeminiClient.generateContent - Gemini modelToUse:', modelToUse);
-    }
+    const modelToUse = this.config.getModel();
     const configToUse: GenerateContentConfig = {
       ...this.generateContentConfig,
       ...generationConfig,

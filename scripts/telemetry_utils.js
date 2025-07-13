@@ -23,12 +23,12 @@ const projectHash = crypto
   .update(projectRoot)
   .digest('hex');
 
-// User-level .gemini directory in home
-const USER_GEMINI_DIR = path.join(os.homedir(), '.gemini');
-// Project-level .gemini directory in the workspace
-const WORKSPACE_GEMINI_DIR = path.join(projectRoot, '.gemini');
+// User-level .gem-cli directory in home
+const USER_GEMINI_DIR = path.join(os.homedir(), '.gem-cli');
+// Project-level .gem-cli directory in the workspace
+const WORKSPACE_GEMINI_DIR = path.join(projectRoot, '.gem-cli');
 
-// Telemetry artifacts are stored in a hashed directory under the user's ~/.gemini/tmp
+// Telemetry artifacts are stored in a hashed directory under the user's ~/.gem-cli/tmp
 export const OTEL_DIR = path.join(USER_GEMINI_DIR, 'tmp', projectHash, 'otel');
 export const BIN_DIR = path.join(OTEL_DIR, 'bin');
 

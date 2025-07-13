@@ -67,6 +67,7 @@ interface MockServerConfig {
   getAccessibility: Mock<() => AccessibilitySettings>;
   getProjectRoot: Mock<() => string | undefined>;
   getAllGeminiMdFilenames: Mock<() => string[]>;
+  getApiBaseUrl: Mock<() => string>;
 }
 
 // Mock @google/gemini-cli-core and its Config class
@@ -128,6 +129,7 @@ vi.mock('@rv192/gem-cli-core', async (importOriginal) => {
         getCheckpointingEnabled: vi.fn(() => opts.checkpointing ?? true),
         getAllGeminiMdFilenames: vi.fn(() => ['GEMINI.md']),
         setFlashFallbackHandler: vi.fn(),
+        getApiBaseUrl: vi.fn(() => 'https://api.openai.com'),
       };
     });
   return {

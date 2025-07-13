@@ -245,6 +245,8 @@ export class Config {
     // the previous session's model (which might be Flash)
     this.contentGeneratorConfig = undefined!;
 
+
+
     const contentConfig = await createContentGeneratorConfig(
       modelToUse,
       authMethod,
@@ -276,8 +278,7 @@ export class Config {
   }
 
   getModel(): string {
-    // 简化逻辑：直接返回在 loadCliConfig 中确定的模型
-    return this.model;
+    return this.contentGeneratorConfig?.model || this.model;
   }
 
   setModel(newModel: string): void {
@@ -303,6 +304,15 @@ export class Config {
   }
 
   getApiBaseUrl(): string {
+    const authType = this.contentGeneratorConfig?.authType;
+
+    if (authType === AuthType.USE_SILICONFLOW) {
+      return process.env.SILICONFLOW_BASE_URL || 'https://api.siliconflow.cn';
+    } else if (authType === AuthType.USE_OPENAI_COMPATIBLE) {
+      return process.env.OPENAI_BASE_URL || 'https://api.openai.com';
+    }
+
+    // Fallback logic for when authType is not set
     if (process.env.OPENAI_API_KEY) {
       return process.env.OPENAI_BASE_URL || 'https://api.openai.com';
     }
