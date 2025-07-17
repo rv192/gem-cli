@@ -130,6 +130,11 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
             errorMessage.includes('exhausted') ||
             errorMessage.includes('Internal server error') ||
             errorMessage.includes('API Error') ||
+            errorMessage.includes('Request timed out') ||
+            errorMessage.includes('timeout') ||
+            errorMessage.includes('Connection error') ||
+            errorMessage.includes('ECONNREFUSED') ||
+            errorMessage.includes('ENOTFOUND') ||
             errorString.includes('Streaming failed'))) {
           console.log(`模型 ${model} 失败: ${errorMessage}, 尝试下一个模型...`);
           continue;

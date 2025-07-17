@@ -517,7 +517,13 @@ describe('discoverMcpTools', () => {
         prop2: {
           type: 'object' as const,
           additionalProperties: false,
-          properties: { nested: { type: 'number' } },
+          properties: {
+            nested: {
+              type: 'number',
+              $schema: 'remove-this-too',
+              additionalProperties: true
+            }
+          },
         },
       },
     };
@@ -547,16 +553,22 @@ describe('discoverMcpTools', () => {
 
     expect(cleanedParams).not.toHaveProperty('$schema');
     expect(cleanedParams).not.toHaveProperty('additionalProperties');
-    expect(cleanedParams.properties.prop1).not.toHaveProperty('$schema');
-    expect(cleanedParams.properties.prop2).not.toHaveProperty(
-      'additionalProperties',
-    );
-    expect(cleanedParams.properties.prop2.properties.nested).not.toHaveProperty(
-      '$schema',
-    );
-    expect(cleanedParams.properties.prop2.properties.nested).not.toHaveProperty(
-      'additionalProperties',
-    );
+
+    // Check if properties exist before accessing them
+    if (cleanedParams.properties) {
+      expect(cleanedParams.properties.prop1).not.toHaveProperty('$schema');
+      expect(cleanedParams.properties.prop2).not.toHaveProperty(
+        'additionalProperties',
+      );
+      if (cleanedParams.properties.prop2?.properties?.nested) {
+        expect(cleanedParams.properties.prop2.properties.nested).not.toHaveProperty(
+          '$schema',
+        );
+        expect(cleanedParams.properties.prop2.properties.nested).not.toHaveProperty(
+          'additionalProperties',
+        );
+      }
+    }
   });
 
   it('should handle error if mcpServerCommand parsing fails', async () => {

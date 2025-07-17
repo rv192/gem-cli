@@ -1,6 +1,6 @@
 {
   "name": "@rv192/gem-cli",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Gen CLI",
   "repository": {
     "type": "git",
@@ -26,7 +26,7 @@
     ".env.template"
   ],
   "config": {
-    "sandboxImageUri": "us-docker.pkg.dev/gemini-code-dev/gemini-cli/sandbox:0.6.0"
+    "sandboxImageUri": "us-docker.pkg.dev/gemini-code-dev/gemini-cli/sandbox:0.6.1"
   },
   "dependencies": {
     "@rv192/gem-cli-core": "0.6.0",

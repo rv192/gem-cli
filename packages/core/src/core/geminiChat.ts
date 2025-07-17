@@ -161,9 +161,9 @@ export class GeminiChat {
     contents: Content[],
     config: GenerateContentConfig
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
-    // 对于 SiliconFlow，让 OpenAICompatibleContentGenerator 自己处理模型选择
+    // 对于 SiliconFlow 和 OpenAI 兼容渠道，让 OpenAICompatibleContentGenerator 自己处理模型选择
     const authType = this.config.getContentGeneratorConfig()?.authType;
-    if (authType === AuthType.USE_SILICONFLOW) {
+    if (authType === AuthType.USE_SILICONFLOW || authType === AuthType.USE_OPENAI_COMPATIBLE) {
 
       return await this.contentGenerator.generateContentStream({
         model: '', // 传递空字符串，让 OpenAICompatibleContentGenerator 使用默认模型
@@ -361,39 +361,46 @@ export class GeminiChat {
     let response: GenerateContentResponse;
 
     try {
-      // 对于 SiliconFlow，让 OpenAICompatibleContentGenerator 自己处理模型选择
+      // 对于 SiliconFlow 和 OpenAI 兼容渠道，让 OpenAICompatibleContentGenerator 自己处理模型选择和重试
       const authType = this.config.getContentGeneratorConfig()?.authType;
-      const modelToUse = authType === AuthType.USE_SILICONFLOW
-        ? '' // 传递空字符串，让 OpenAICompatibleContentGenerator 使用默认模型
-        : this.config.getModel() || DEFAULT_GEMINI_FLASH_MODEL;
 
-
-
-      const apiCall = () =>
-        this.contentGenerator.generateContent({
-          model: modelToUse,
+      if (authType === AuthType.USE_SILICONFLOW || authType === AuthType.USE_OPENAI_COMPATIBLE) {
+        // 直接调用 OpenAICompatibleContentGenerator，它内部有自己的重试逻辑
+        response = await this.contentGenerator.generateContent({
+          model: '', // 传递空字符串，让 OpenAICompatibleContentGenerator 使用默认模型
           contents: requestContents,
           config: { ...this.generationConfig, ...params.config },
         });
+      } else {
+        // 对于其他认证类型（如 Google OAuth），使用原有的重试逻辑
+        const modelToUse = this.config.getModel() || DEFAULT_GEMINI_FLASH_MODEL;
 
-      response = await retryWithBackoff(apiCall, {
-        shouldRetry: (error: Error) => {
-          if (error && error.message) {
-            if (error.message.includes('429')) return true;
-            if (error.message.match(/5\d{2}/)) return true;
-            // Add support for streaming failures and model exhaustion
-            if (error.message.includes('Streaming failed')) return true;
-            if (error.message.includes('rate limit')) return true;
-            if (error.message.includes('quota')) return true;
-            if (error.message.includes('exhausted')) return true;
-            if (error.message.includes('Internal server error')) return true;
-          }
-          return false;
-        },
-        onPersistent429: async (authType?: string) =>
-          await this.handleFlashFallback(authType),
-        authType: this.config.getContentGeneratorConfig()?.authType,
-      });
+        const apiCall = () =>
+          this.contentGenerator.generateContent({
+            model: modelToUse,
+            contents: requestContents,
+            config: { ...this.generationConfig, ...params.config },
+          });
+
+        response = await retryWithBackoff(apiCall, {
+          shouldRetry: (error: Error) => {
+            if (error && error.message) {
+              if (error.message.includes('429')) return true;
+              if (error.message.match(/5\d{2}/)) return true;
+              // Add support for streaming failures and model exhaustion
+              if (error.message.includes('Streaming failed')) return true;
+              if (error.message.includes('rate limit')) return true;
+              if (error.message.includes('quota')) return true;
+              if (error.message.includes('exhausted')) return true;
+              if (error.message.includes('Internal server error')) return true;
+            }
+            return false;
+          },
+          onPersistent429: async (authType?: string) =>
+            await this.handleFlashFallback(authType),
+          authType: this.config.getContentGeneratorConfig()?.authType,
+        });
+      }
       const durationMs = Date.now() - startTime;
       await this._logApiResponse(
         durationMs,

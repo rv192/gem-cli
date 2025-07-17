@@ -48,6 +48,7 @@ interface CliArgs {
   telemetryOtlpEndpoint: string | undefined;
   telemetryLogPrompts: boolean | undefined;
   allowed_mcp_server_names: string | undefined;
+  'allow-local-env': boolean | undefined;
 }
 
 async function parseArguments(): Promise<CliArgs> {
@@ -127,13 +128,18 @@ async function parseArguments(): Promise<CliArgs> {
       type: 'string',
       description: 'Allowed MCP server names',
     })
+    .option('allow-local-env', {
+      type: 'boolean',
+      description: 'Allow reading .env files from current directory and parent directories',
+      default: false,
+    })
     .version(await getCliVersion()) // This will enable the --version flag based on package.json
     .alias('v', 'version')
     .help()
     .alias('h', 'help')
     .strict().argv;
 
-  return argv;
+  return argv as CliArgs;
 }
 
 // This function is now a thin wrapper around the server's implementation.

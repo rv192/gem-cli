@@ -124,8 +124,12 @@ async function relaunchWithAdditionalArgs(additionalArgs: string[]) {
 
 export async function main() {
   runFirstTimeSetup();
+
+  // 简单解析 --allow-local-env 参数
+  const allowLocalEnv = process.argv.includes('--allow-local-env');
+
   const workspaceRoot = process.cwd();
-  const settings = loadSettings(workspaceRoot);
+  const settings = loadSettings(workspaceRoot, allowLocalEnv);
 
   await cleanupCheckpoints();
   if (settings.errors.length > 0) {

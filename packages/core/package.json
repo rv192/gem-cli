@@ -1,6 +1,6 @@
 {
   "name": "@rv192/gem-cli-core",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Gen CLI Core",
   "repository": {
     "type": "git",

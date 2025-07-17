@@ -174,37 +174,45 @@ function resolveEnvVarsInObject<T>(obj: T): T {
   return obj;
 }
 
-function findEnvFile(startDir: string): string | null {
-  let currentDir = path.resolve(startDir);
-  while (true) {
-    // prefer gemini-specific .env under GEMINI_DIR
-    const geminiEnvPath = path.join(currentDir, GEMINI_DIR, '.env');
-    if (fs.existsSync(geminiEnvPath)) {
-      return geminiEnvPath;
-    }
-    const envPath = path.join(currentDir, '.env');
-    if (fs.existsSync(envPath)) {
-      return envPath;
-    }
-    const parentDir = path.dirname(currentDir);
-    if (parentDir === currentDir || !parentDir) {
-      // check .env under home as fallback, again preferring gemini-specific .env
-      const homeGeminiEnvPath = path.join(homedir(), GEMINI_DIR, '.env');
-      if (fs.existsSync(homeGeminiEnvPath)) {
-        return homeGeminiEnvPath;
+function findEnvFile(startDir: string, allowLocalEnv: boolean = false): string | null {
+  // 如果允许读取本地环境变量，优先搜索当前目录及父目录
+  if (allowLocalEnv) {
+    let currentDir = path.resolve(startDir);
+    while (true) {
+      // prefer gemini-specific .env under GEMINI_DIR
+      const geminiEnvPath = path.join(currentDir, GEMINI_DIR, '.env');
+      if (fs.existsSync(geminiEnvPath)) {
+        return geminiEnvPath;
       }
-      const homeEnvPath = path.join(homedir(), '.env');
-      if (fs.existsSync(homeEnvPath)) {
-        return homeEnvPath;
+      const envPath = path.join(currentDir, '.env');
+      if (fs.existsSync(envPath)) {
+        return envPath;
       }
-      return null;
+      const parentDir = path.dirname(currentDir);
+      if (parentDir === currentDir || !parentDir) {
+        break;
+      }
+      currentDir = parentDir;
     }
-    currentDir = parentDir;
   }
+
+  // 检查用户主目录的 gem-cli 专用配置
+  const homeGeminiEnvPath = path.join(homedir(), GEMINI_DIR, '.env');
+  if (fs.existsSync(homeGeminiEnvPath)) {
+    return homeGeminiEnvPath;
+  }
+
+  // 最后检查用户主目录的通用 .env 文件
+  const homeEnvPath = path.join(homedir(), '.env');
+  if (fs.existsSync(homeEnvPath)) {
+    return homeEnvPath;
+  }
+
+  return null;
 }
 
-export function loadEnvironment(): void {
-  const envFilePath = findEnvFile(process.cwd());
+export function loadEnvironment(allowLocalEnv: boolean = false): void {
+  const envFilePath = findEnvFile(process.cwd(), allowLocalEnv);
   if (envFilePath) {
     dotenv.config({ path: envFilePath, quiet: true });
   }
@@ -214,8 +222,8 @@ export function loadEnvironment(): void {
  * Loads settings from user and workspace directories.
  * Project settings override user settings.
  */
-export function loadSettings(workspaceDir: string): LoadedSettings {
-  loadEnvironment();
+export function loadSettings(workspaceDir: string, allowLocalEnv: boolean = false): LoadedSettings {
+  loadEnvironment(allowLocalEnv);
   let userSettings: Settings = {};
   let workspaceSettings: Settings = {};
   const settingsErrors: SettingsError[] = [];
